@@ -4,6 +4,8 @@ use anyhow::Result;
 use tokio::time;
 use std::time::Duration;
 
+const NUM_RETRIES: i32 = 5;
+
 pub struct ConnectionHelper {
   device: Peripheral
 }
@@ -13,9 +15,9 @@ impl ConnectionHelper {
     Self { device: device.clone() }
   }
 
-  pub async fn connect(&self) -> Result<bool, btleplug::Error> { // Connect to Bluetooth device //TODO: Rewrite on next iteration to dynamically adjust number of retries "Exponential Backoff"
+  pub async fn connect(&self) -> Result<bool, btleplug::Error> { // Connect to Bluetooth device 
     tracing::debug!("Connecting to device.");
-    let mut retries = 5; //TODO: This should be dynamically adjusted
+    let mut retries = NUM_RETRIES;
     while retries >= 0 {
       if self.device.is_connected().await? {
         tracing::debug!("Connected to device");
