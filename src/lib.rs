@@ -9,7 +9,7 @@ mod scanner;
 mod connection;
 mod login;
 mod session;
-
+pub mod gps_location;
 
 pub use register::RegistrationRequest as RegistrationRequest;
 pub use register::RegistrationError as RegistrationError;
