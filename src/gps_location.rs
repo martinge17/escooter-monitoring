@@ -153,13 +153,9 @@ fn get_gps_position(port: &mut dyn SerialPort) -> Result<GPSInfo> {
     }
 }
 
-fn gps_status() -> Result<bool> {
-    let mut port = serialport::new(PORT, BAUDRATE)
-        .timeout(Duration::from_millis(10))
-        .open()
-        .expect("Failed to open port");
+fn gps_status(port: &mut dyn SerialPort) -> Result<bool> {
 
-    let response = send_at(&mut *port, "AT+CGPS?", "+CGPS: ", Duration::from_secs(1)).unwrap();
+    let response = send_at(port, "AT+CGPS?", "+CGPS: ", Duration::from_secs(1)).unwrap();
 
     // Parse response. Format is +CGPS: 1,1   or +CGPS: 0,1
     if response != "NO MATCH" && response.contains("+CGPS: 1,1") {
@@ -170,24 +166,20 @@ fn gps_status() -> Result<bool> {
     Err(anyhow!("Can´t get GPS status!"))
 }
 
-fn enable_gps() -> Result<bool> {
-    let mut port = serialport::new(PORT, BAUDRATE)
-        .timeout(Duration::from_millis(10))
-        .open()
-        .expect("Failed to open port");
+fn enable_gps(port: &mut dyn SerialPort) -> Result<bool> {
 
-    let response = send_at(&mut *port, "AT+CGPS?", "+CGPS: ", Duration::from_secs(1))?;
+    let response = send_at(port, "AT+CGPS?", "+CGPS: ", Duration::from_secs(1))?;
 
     // Parse response. Format is +CGPS: 1,1   or +CGPS: 0,1
     if response != "NO MATCH" && response.contains("+CGPS: 1,1") {
         debug!("GPS already enabled!  -> Reactivating GPS!");
-        send_at(&mut *port, "AT+CGPS=0", "OK", Duration::from_secs(1)).expect("Can't disable GPS");
+        send_at(port, "AT+CGPS=0", "OK", Duration::from_secs(1)).expect("Can't disable GPS");
         sleep(Duration::from_millis(500));
     }
 
     debug!("Enabling GPS...");
 
-    send_at(&mut *port, "AT+CGPS=1", "OK", Duration::from_secs(1))?;
+    send_at(port, "AT+CGPS=1", "OK", Duration::from_secs(1))?;
 
     return Ok(true)
 }
