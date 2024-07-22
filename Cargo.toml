@@ -37,6 +37,7 @@ uuid = { version = "0.8.2", features = ["v4"] }
 anyhow = "1.0.53"
 thiserror = "1.0.30"
 tracing = "0.1"
+regex = "1.10.5"
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3.7", features = ["tracing-log"] }

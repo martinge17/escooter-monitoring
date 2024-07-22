@@ -6,26 +6,18 @@ use tracing::{debug, info};
 use serde::Serialize;
 // Use https://crates.io/crates/serialport
 use anyhow::{anyhow, Result, Error};
+use regex::Regex;
 
-
+//TODO: Read this parameters from configuration file!
 const PORT: &str = "/dev/ttyUSB2";
 const BAUDRATE: u32 = 115200;
 const TIMEOUT: u32 = 1;
-
-//TODO: SOLVE, when this function is called, it should
 
 /**
 * get_gps_coordinates returns a string with the required coordinates every X seconds, that will be coordinated with the main function
  that request data from the scooter. So when we send data to the MQTT broker we also send the latest GPS position.
 *
 */
-/*
-
-Format: DDMM.MMMMM
-DD -> degrees
-MM -> Minutes
-
- */
 const LATITUDE: i8 = 1;
 const LONGITUDE: i8 = 2;
 
@@ -36,26 +28,35 @@ pub struct GPSInfo { //From left to right are ① Latitude, ② Longitude, ③ D
     pub longitude: f64,
     pub altitude: f32,
     pub gps_speed: f32,
-    pub nav_angle: f32
 }
 
 impl GPSInfo {
 
     pub fn parse(input: &str) -> Result<GPSInfo> {
-        // Remove the "+CGPSINFO: " prefix and the trailing comma
-        let data = input.trim_start_matches("+CGPSINFO: ").trim_end_matches(",");
+        // Remove the "AT+CGPSINFO\r\r\n+CGPSINFO: " prefix and the trailing comma
+        let data = input.trim_start_matches("AT+CGPSINFO\r\r\n+CGPSINFO: ");
+
+
+        //Find the last comma and everything that follows
+        let re = Regex::new(r",[^,]*$").unwrap();
+
+        let cleaned = re.replace(data,"").to_string();
 
         //Split by comma
-        let parts: Vec<&str> = data.split(',').collect();
+        let parts: Vec<&str> = cleaned.split(',').collect();
 
-        print!("{:?}",parts);
+        debug!("{:?}",parts);
 
         // Extract data from fields
         let latitude = dms_to_decimal(parts[0],parts[1].chars().next().unwrap(),LATITUDE)?;
         let longitude = dms_to_decimal(parts[2],parts[3].chars().next().unwrap(),LONGITUDE)?;
         let altitude = parts[6].parse::<f32>().unwrap();
         let speed_gps = parts[7].parse::<f32>().unwrap();
-        let nav_angle = if parts.len() > 8 { parts[8].parse::<f32>().unwrap() } else { 0.0_f32 }; //if device it won't show nav angle data
+
+        // Validate coordinates (-90 <= lat <= 90 -180 <= lon <= 180)
+        if !Self::validate_coordinates(latitude,longitude){
+            return Ok(Self::null_island())
+        }
 
         // Create and return the GPSInfo struct
 
@@ -64,9 +65,13 @@ impl GPSInfo {
             longitude,
             altitude,
             gps_speed: speed_gps,
-            nav_angle,
         })
 
+    }
+
+    // Validate coordinates (-90 <= lat <= 90 -180 <= lon <= 180)
+    fn validate_coordinates(lat: f64, lon: f64) -> bool {
+        lat >= -90.0 && lat <= 90.0 && lon >= -180.0 && lon <= 180.0
     }
 
     // Returns 0 0 (Null Island) usefull when the GPS is deactivated or there is some error. https://en.wikipedia.org/wiki/Null_Island
@@ -77,7 +82,6 @@ impl GPSInfo {
             longitude: 0.0,
             altitude: 0.0,
             gps_speed: 0.0,
-            nav_angle: 0.0
         }
     }
 }
@@ -134,7 +138,7 @@ fn send_at(port: &mut dyn SerialPort, command: &str, back: &str, timeout: Durati
 }
 
 fn get_gps_position(port: &mut dyn SerialPort) -> Result<GPSInfo> {
-    println!("Start GPS session...");
+    debug!("Start GPS session...");
 
     let response = send_at(port, "AT+CGPSINFO", "+CGPSINFO: ", Duration::from_secs(1))?;
     return if response != "NO MATCH" {
@@ -142,11 +146,9 @@ fn get_gps_position(port: &mut dyn SerialPort) -> Result<GPSInfo> {
             info!("GPS not ready or error");
             Ok(GPSInfo::null_island())
         } else {
-            let info = GPSInfo::parse(&response).unwrap();
-            Ok(info)
+            Ok(GPSInfo::parse(&response)?)
         }
     } else {
-        println!("NOT MATCHED");
         Err(anyhow!("Command output mismatch GPS!"))
     }
 }
@@ -161,7 +163,7 @@ fn gps_status() -> Result<bool> {
 
     // Parse response. Format is +CGPS: 1,1   or +CGPS: 0,1
     if response != "NO MATCH" && response.contains("+CGPS: 1,1") {
-        print!("Enabled!");
+        info!("Enabled!");
         return Ok(true)
     }
 
@@ -178,22 +180,16 @@ fn enable_gps() -> Result<bool> {
 
     // Parse response. Format is +CGPS: 1,1   or +CGPS: 0,1
     if response != "NO MATCH" && response.contains("+CGPS: 1,1") {
-        debug!("GPS already enabled!");
-        return Ok(true)
+        debug!("GPS already enabled!  -> Reactivating GPS!");
+        send_at(&mut *port, "AT+CGPS=0", "OK", Duration::from_secs(1)).expect("Can't disable GPS");
+        sleep(Duration::from_millis(500));
     }
 
     debug!("Enabling GPS...");
 
-    let response = send_at(&mut *port, "AT+CGPS=1", "OK", Duration::from_secs(1))?;
+    send_at(&mut *port, "AT+CGPS=1", "OK", Duration::from_secs(1))?;
 
-    // Parse response. Format is +CGPS: 1,1   or +CGPS: 0,1
-    if response != "NO MATCH" && response.contains("+CGPS: 1,1") {
-        print!("Enabled!");
-        sleep(Duration::from_secs(2)); //GIVE TIME TO ENABLE GPS
-        return Ok(true)
-    }
-
-    Err(anyhow!("Can´t enable GPS"))
+    return Ok(true)
 }
 
 
