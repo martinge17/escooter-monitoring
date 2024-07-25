@@ -25,7 +25,7 @@ pub struct Scooter {
 #[derive(Debug, Deserialize)]
 pub struct Serial {
     pub serial_port: String,
-    pub baudrate: i32,
+    pub baudrate: u32,
 }
 
 #[derive(Debug, Deserialize)]
