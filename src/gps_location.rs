@@ -1,11 +1,11 @@
-use std::time::Duration;
-use std::io::{self, Write, Read};
-use std::thread::sleep;
+use serde::{Deserialize, Serialize};
 use serialport::SerialPort;
+use std::io::{self, Read, Write};
+use std::thread::sleep;
+use std::time::Duration;
 use tracing::{debug, info};
-use serde::Serialize;
 // Use https://crates.io/crates/serialport
-use anyhow::{anyhow, Result, Error};
+use anyhow::{anyhow, Error, Result};
 use regex::Regex;
 
 //TODO: Read this parameters from configuration file!
@@ -21,9 +21,9 @@ const TIMEOUT: u32 = 1;
 const LATITUDE: i8 = 1;
 const LONGITUDE: i8 = 2;
 
-#[derive(Debug, Serialize)]
-pub struct GPSInfo { //From left to right are ① Latitude, ② Longitude, ③ Date, ④ Time, ⑤ Altitude, ⑥ Speed and ⑦ Navigation Angle.
-
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GPSInfo {
+    //From left to right are ① Latitude, ② Longitude, ③ Date, ④ Time, ⑤ Altitude, ⑥ Speed and ⑦ Navigation Angle.
     pub latitude: f64,
     pub longitude: f64,
     pub altitude: f32,
@@ -31,31 +31,29 @@ pub struct GPSInfo { //From left to right are ① Latitude, ② Longitude, ③ D
 }
 
 impl GPSInfo {
-
     pub fn parse(input: &str) -> Result<GPSInfo> {
         // Remove the "AT+CGPSINFO\r\r\n+CGPSINFO: " prefix and the trailing comma
         let data = input.trim_start_matches("AT+CGPSINFO\r\r\n+CGPSINFO: ");
 
-
         //Find the last comma and everything that follows
         let re = Regex::new(r",[^,]*$").unwrap();
 
-        let cleaned = re.replace(data,"").to_string();
+        let cleaned = re.replace(data, "").to_string();
 
         //Split by comma
         let parts: Vec<&str> = cleaned.split(',').collect();
 
-        debug!("{:?}",parts);
+        debug!("{:?}", parts);
 
         // Extract data from fields
-        let latitude = dms_to_decimal(parts[0],parts[1].chars().next().unwrap(),LATITUDE)?;
-        let longitude = dms_to_decimal(parts[2],parts[3].chars().next().unwrap(),LONGITUDE)?;
+        let latitude = dms_to_decimal(parts[0], parts[1].chars().next().unwrap(), LATITUDE)?;
+        let longitude = dms_to_decimal(parts[2], parts[3].chars().next().unwrap(), LONGITUDE)?;
         let altitude = parts[6].parse::<f32>().unwrap();
         let speed_gps = parts[7].parse::<f32>().unwrap();
 
         // Validate coordinates (-90 <= lat <= 90 -180 <= lon <= 180)
-        if !Self::validate_coordinates(latitude,longitude){
-            return Ok(Self::null_island())
+        if !Self::validate_coordinates(latitude, longitude) {
+            return Ok(Self::null_island());
         }
 
         // Create and return the GPSInfo struct
@@ -66,7 +64,6 @@ impl GPSInfo {
             altitude,
             gps_speed: speed_gps,
         })
-
     }
 
     // Validate coordinates (-90 <= lat <= 90 -180 <= lon <= 180)
@@ -76,7 +73,6 @@ impl GPSInfo {
 
     // Returns 0 0 (Null Island) usefull when the GPS is deactivated or there is some error. https://en.wikipedia.org/wiki/Null_Island
     pub fn null_island() -> GPSInfo {
-
         GPSInfo {
             latitude: 0.0,
             longitude: 0.0,
@@ -84,11 +80,27 @@ impl GPSInfo {
             gps_speed: 0.0,
         }
     }
+
+    pub fn get_gps_position(port: &mut dyn SerialPort) -> Result<GPSInfo> {
+        debug!("Start GPS session...");
+
+        let response = send_at(port, "AT+CGPSINFO", "+CGPSINFO: ", Duration::from_secs(1))?;
+        return if response != "NO MATCH" {
+            if response.contains(",,,,,,,") {
+                //Instead of stopping return Null Island
+                info!("GPS not ready or error");
+                Ok(GPSInfo::null_island())
+            } else {
+                Ok(GPSInfo::parse(&response)?)
+            }
+        } else {
+            Err(anyhow!("Command output mismatch GPS!"))
+        };
+    }
 }
 
 // Data comes in NMEA format https://www.gpsworld.com/what-exactly-is-gps-nmea-data/
 fn dms_to_decimal(degrees_minutes: &str, direction: char, axis: i8) -> Result<f64> {
-
     /*
     +CGPSINFO: 4319.736021,N,00824.498574,W,150724,162016.0,176.0,0.0,
 
@@ -99,13 +111,16 @@ fn dms_to_decimal(degrees_minutes: &str, direction: char, axis: i8) -> Result<f6
      */
 
     let (degrees, minutes_idx) = match axis {
-        LATITUDE => (degrees_minutes[0..2].parse::<f64>().unwrap(),2),
-        LONGITUDE => (degrees_minutes[0..3].parse::<f64>().unwrap(),3),
-        _ => return Err(anyhow!("Invalid axis: only LATITUDE and LONGITUDE are compatible!"))
+        LATITUDE => (degrees_minutes[0..2].parse::<f64>().unwrap(), 2),
+        LONGITUDE => (degrees_minutes[0..3].parse::<f64>().unwrap(), 3),
+        _ => {
+            return Err(anyhow!(
+                "Invalid axis: only LATITUDE and LONGITUDE are compatible!"
+            ))
+        }
     };
 
-
-    let minutes= degrees_minutes[minutes_idx..].parse::<f64>().unwrap();
+    let minutes = degrees_minutes[minutes_idx..].parse::<f64>().unwrap();
 
     let mut decimal_degress = degrees + (minutes / 60.0);
 
@@ -116,7 +131,12 @@ fn dms_to_decimal(degrees_minutes: &str, direction: char, axis: i8) -> Result<f6
     Ok(decimal_degress)
 }
 
-fn send_at(port: &mut dyn SerialPort, command: &str, back: &str, timeout: Duration) -> Result<String> {
+fn send_at(
+    port: &mut dyn SerialPort,
+    command: &str,
+    back: &str,
+    timeout: Duration,
+) -> Result<String> {
     port.write_all((command.to_string() + "\r\n").as_bytes())?;
 
     sleep(timeout);
@@ -137,37 +157,19 @@ fn send_at(port: &mut dyn SerialPort, command: &str, back: &str, timeout: Durati
     }
 }
 
-fn get_gps_position(port: &mut dyn SerialPort) -> Result<GPSInfo> {
-    debug!("Start GPS session...");
-
-    let response = send_at(port, "AT+CGPSINFO", "+CGPSINFO: ", Duration::from_secs(1))?;
-    return if response != "NO MATCH" {
-        if response.contains(",,,,,,,") { //Instead of stopping return Null Island
-            info!("GPS not ready or error");
-            Ok(GPSInfo::null_island())
-        } else {
-            Ok(GPSInfo::parse(&response)?)
-        }
-    } else {
-        Err(anyhow!("Command output mismatch GPS!"))
-    }
-}
-
 fn gps_status(port: &mut dyn SerialPort) -> Result<bool> {
-
     let response = send_at(port, "AT+CGPS?", "+CGPS: ", Duration::from_secs(1)).unwrap();
 
     // Parse response. Format is +CGPS: 1,1   or +CGPS: 0,1
     if response != "NO MATCH" && response.contains("+CGPS: 1,1") {
         info!("Enabled!");
-        return Ok(true)
+        return Ok(true);
     }
 
     Err(anyhow!("Can´t get GPS status!"))
 }
 
-fn enable_gps(port: &mut dyn SerialPort) -> Result<bool> {
-
+pub fn enable_gps(port: &mut dyn SerialPort) -> Result<bool> {
     let response = send_at(port, "AT+CGPS?", "+CGPS: ", Duration::from_secs(1))?;
 
     // Parse response. Format is +CGPS: 1,1   or +CGPS: 0,1
@@ -181,7 +183,5 @@ fn enable_gps(port: &mut dyn SerialPort) -> Result<bool> {
 
     send_at(port, "AT+CGPS=1", "OK", Duration::from_secs(1))?;
 
-    return Ok(true)
+    return Ok(true);
 }
-
-
