@@ -37,9 +37,10 @@ tokio-stream = "0.1.8"
 uuid = { version = "0.8.2", features = ["v4"] }
 anyhow = "1.0.53"
 thiserror = "1.0.30"
-tracing = "0.1"
+tracing = "0.1.40" #0.1
 regex = "1.10.5"
 lazy_static = "1.5.0"
+tracing-subscriber = { version = "0.3.7", features = ["tracing-log"] }
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3.7", features = ["tracing-log"] }
