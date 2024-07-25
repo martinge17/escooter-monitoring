@@ -2,11 +2,11 @@ use super::{MiSession, Payload};
 use super::commands::{ScooterCommand, Direction, Attribute, ReadWrite};
 
 use anyhow::Result;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub type BatteryCellsVoltage = [f32; 10];
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BatteryInfo {
   /**
    * Charge left in scooter, in Milliamps (mA)
