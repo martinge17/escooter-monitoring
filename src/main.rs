@@ -62,7 +62,7 @@ async fn main() -> Result<()> {
 
     //Connect with the scooter
     let connection = ConnectionHelper::new(&device);
-    connection.reconnect().await?; //TODO: REWORK FROM HERE THIS ON SECOND ITERATION TO IMPLEMENT THE BACKOFF
+    connection.reconnect().await?; //TODO: TEMPORALLY RETRY TO INFINITE (12 hours) REWORK FROM HERE THIS ON SECOND ITERATION TO IMPLEMENT THE BACKOFF
 
     //Once connected, login into the scooter (key exchange, read more in the protocol documentation)
     let mut request = LoginRequest::new(&device, &token).await?;
@@ -72,6 +72,7 @@ async fn main() -> Result<()> {
 
     //Call MQTT
     let mqtt_client = MqttClient::new().await?;
+    //TODO: LOOP FOR MQTT CONNECTION
 
     //Open Serial connection
     let mut port = serialport::new(&CONFIG.serial.serial_port, CONFIG.serial.baudrate)
@@ -84,6 +85,7 @@ async fn main() -> Result<()> {
 
     //TODO: Call loop to pull data from the scooter and send it
     loop {
+        //TODO: RECONNECT TO SCOOTER IF FAILED
         let data = Telemetry::pull_scooter(&mut session, &mut *port).await?;
         let json_payload = serde_json::to_string(&data)?;
 
@@ -94,6 +96,7 @@ async fn main() -> Result<()> {
 
         if let Err(e) = mqtt_client.client.publish(msg).await {
             tracing::error!("Failed to send MQTT message: {:?}", e);
+            //TODO: CHECK IF THERE IS CONNECTION WITH THE BROKER !!!! IF NOT THEN RECONNECT
         }
     }
 }
