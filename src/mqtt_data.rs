@@ -21,8 +21,12 @@ impl MqttClient {
         });
 
         let conn_opts = ConnectOptionsBuilder::new()
-            .keep_alive_interval(Duration::from_secs(20))
+            .keep_alive_interval(Duration::from_secs(CONFIG.mqtt.keep_alive))
             .clean_session(true)
+            .automatic_reconnect(
+                Duration::from_secs(CONFIG.mqtt.reconnect_min),
+                Duration::from_secs(CONFIG.mqtt.reconnect_max),
+            )
             .finalize();
 
         tracing::info!("Starting MQTT connection");
