@@ -55,14 +55,20 @@ async fn main() -> Result<()> {
 
     info!("Searching scooter with address: {}", mac);
 
+    //Search for scooter with the MAC address provided
     let mut scanner = ScooterScanner::new().await?;
     let scooter = scanner.wait_for(&mac).await?;
     let device = scanner.peripheral(&scooter).await?;
+
+    //Connect with the scooter
     let connection = ConnectionHelper::new(&device);
     connection.reconnect().await?; //TODO: REWORK FROM HERE THIS ON SECOND ITERATION TO IMPLEMENT THE BACKOFF
 
+    //Once connected, login into the scooter (key exchange, read more in the protocol documentation)
     let mut request = LoginRequest::new(&device, &token).await?;
     let mut session = request.start().await?;
+
+    //Once we establish an encrypted connection with the scooter, continue the flow by connecting to the MQTT broker
 
     //Call MQTT
     let mqtt_client = MqttClient::new().await?;
