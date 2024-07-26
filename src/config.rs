@@ -14,6 +14,9 @@ pub struct Mqtt {
     pub broker: String,
     pub client: String,
     pub topic: String,
+    pub keep_alive: u64,
+    pub reconnect_min: u64, //The minimum retry interval. Doubled on each failed retry. This has a resolution in seconds.
+    pub reconnect_max: u64, //The maximum retry interval. Doubling stops here on failed retries. This has a resolution in seconds.
 }
 
 #[derive(Debug, Deserialize)]
