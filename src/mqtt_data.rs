@@ -2,7 +2,6 @@ use crate::config::CONFIG;
 use anyhow::{anyhow, Error, Result};
 use paho_mqtt::AsyncClient;
 use paho_mqtt::{ConnectOptionsBuilder, CreateOptionsBuilder};
-use serde::Deserialize;
 use std::time::Duration;
 use tracing::error;
 

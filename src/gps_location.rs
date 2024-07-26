@@ -8,11 +8,6 @@ use tracing::{debug, info};
 use anyhow::{anyhow, Error, Result};
 use regex::Regex;
 
-//TODO: Read this parameters from configuration file!
-const PORT: &str = "/dev/ttyUSB2";
-const BAUDRATE: u32 = 115200;
-const TIMEOUT: u32 = 1;
-
 /**
 * get_gps_coordinates returns a string with the required coordinates every X seconds, that will be coordinated with the main function
  that request data from the scooter. So when we send data to the MQTT broker we also send the latest GPS position.
