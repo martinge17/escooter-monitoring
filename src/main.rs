@@ -98,5 +98,7 @@ async fn main() -> Result<()> {
             tracing::error!("Failed to send MQTT message: {:?}", e);
             //TODO: CHECK IF THERE IS CONNECTION WITH THE BROKER !!!! IF NOT THEN RECONNECT
         }
+
+        tokio::time::sleep(Duration::from_secs(CONFIG.mqtt.send_interval)).await;
     }
 }

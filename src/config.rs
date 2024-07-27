@@ -17,6 +17,7 @@ pub struct Mqtt {
     pub keep_alive: u64,
     pub reconnect_min: u64, //The minimum retry interval. Doubled on each failed retry. This has a resolution in seconds.
     pub reconnect_max: u64, //The maximum retry interval. Doubling stops here on failed retries. This has a resolution in seconds.
+    pub send_interval: u64, // Frecuency for sending data to broker (seconds). More frecuency == More data consumption
 }
 
 #[derive(Debug, Deserialize)]
