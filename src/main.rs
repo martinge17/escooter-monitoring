@@ -72,7 +72,6 @@ async fn main() -> Result<()> {
 
     //Call MQTT
     let mqtt_client = MqttClient::new().await?;
-    //TODO: LOOP FOR MQTT CONNECTION
 
     //Open Serial connection
     let mut port = serialport::new(&CONFIG.serial.serial_port, CONFIG.serial.baudrate)
@@ -92,11 +91,9 @@ async fn main() -> Result<()> {
         info!("Publishing message: {}", json_payload);
         //We use QOS_0 since it is high-frequency and less important data, then it is acceptable to miss a few updates.
         let msg = paho_mqtt::Message::new(&CONFIG.mqtt.topic, json_payload, paho_mqtt::QOS_0);
-        //TODO: REWORK!!! INSTEAD OF EXIT IT SHOULD KEEP RETR
 
         if let Err(e) = mqtt_client.client.publish(msg).await {
             tracing::error!("Failed to send MQTT message: {:?}", e);
-            //TODO: CHECK IF THERE IS CONNECTION WITH THE BROKER !!!! IF NOT THEN RECONNECT
         }
 
         tokio::time::sleep(Duration::from_secs(CONFIG.mqtt.send_interval)).await;
