@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use anyhow::Result;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
@@ -26,7 +24,11 @@ pub struct Telemetry {
      * Distance (meters). Current trip distance
      */
     pub trip_distance_m: i16,
-    pub uptime: Duration,
+    /**
+     * Estimated Distance left (kilometers).
+     */
+    pub trip_distance_left_km: f32,
+    pub uptime: f32,
 
     pub battery_info: BatteryInfo,
 
@@ -39,6 +41,7 @@ impl Telemetry {
         let motorinfo = session.motor_info().await?;
 
         let battery_info = session.battery_info().await?;
+        let distance_left = session.distance_left().await?;
 
         //Pull GPS data
         let gps = GPSInfo::get_gps_position(port)?;
@@ -50,7 +53,8 @@ impl Telemetry {
             speed_kmh: motorinfo.speed_kmh,
             total_distance_m: motorinfo.total_distance_m,
             trip_distance_m: motorinfo.trip_distance_m,
-            uptime: motorinfo.uptime,
+            trip_distance_left_km: distance_left,
+            uptime: motorinfo.uptime.as_secs_f32(),
             battery_info,
             gpsinfo: gps,
         };
