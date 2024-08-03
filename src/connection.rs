@@ -4,11 +4,7 @@ use btleplug::platform::Peripheral;
 use std::time::Duration;
 use tokio::time;
 
-/*
- TODO: TEMPORALLY DONT IMPLEMENT BACKOFF, ONLY TRY TO CONNECT INFINITELY (real limit to: 43200 (12 hours))
-*/
-
-const NUM_RETRIES: i32 = 43200;
+const NUM_RETRIES: i32 = 5;
 
 pub struct ConnectionHelper {
     device: Peripheral,
@@ -21,8 +17,8 @@ impl ConnectionHelper {
         }
     }
 
-    /*
-     TODO: TEMPORALLY DONT IMPLEMENT BACKOFF, ONLY TRY TO CONNECT INFINITELY
+    /**
+        Due to BlueZ issues the reconnection does not work well since the device appears to be busy.
     */
     pub async fn connect(&self) -> Result<bool, btleplug::Error> {
         // Connect to Bluetooth device
@@ -31,7 +27,8 @@ impl ConnectionHelper {
         while retries >= 0 {
             if self.device.is_connected().await? {
                 tracing::debug!("Connected to device");
-                break;
+                //Return false to know there is an active connection
+                return Ok(false);
             }
             match self.device.connect().await {
                 Ok(_) => break,
@@ -42,7 +39,7 @@ impl ConnectionHelper {
                         retries,
                         err
                     );
-                    time::sleep(Duration::from_secs(1)).await; //TODO: Exponential Backoff
+                    time::sleep(Duration::from_secs(1)).await;
                 }
 
                 Err(err) => return Err(err),
@@ -66,7 +63,6 @@ impl ConnectionHelper {
         tracing::debug!("Disconnected from device");
         Ok(true)
     }
-
     pub async fn reconnect(&self) -> Result<bool> {
         tracing::debug!("Reconnecting...");
         self.disconnect().await?;
