@@ -3,7 +3,7 @@ use serialport::SerialPort;
 use std::io::{self, Read, Write};
 use std::thread::sleep;
 use std::time::Duration;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 // Use https://crates.io/crates/serialport
 use anyhow::{anyhow, Error, Result};
 use regex::Regex;
@@ -39,12 +39,100 @@ impl GPSInfo {
         let parts: Vec<&str> = cleaned.split(',').collect();
 
         debug!("{:?}", parts);
+        // This is intended to be failsafe
+        // Extract data from fields TODO TAKE A LOOK AT THIS
+        if parts.len() < 8 {
+            error!("Insufficient data fields in GPS info.");
+            return Ok(Self::null_island());
+        }
 
-        // Extract data from fields
-        let latitude = dms_to_decimal(parts[0], parts[1].chars().next().unwrap(), LATITUDE)?;
-        let longitude = dms_to_decimal(parts[2], parts[3].chars().next().unwrap(), LONGITUDE)?;
-        let altitude = parts[6].parse::<f32>().unwrap();
-        let speed_gps = parts[7].parse::<f32>().unwrap();
+        // Safely extract and parse the data fields
+        let p1_lat = match parts.first() {
+            Some(&lat) => lat,
+            None => {
+                error!("Missing latitude degrees.");
+                return Ok(Self::null_island());
+            }
+        };
+
+        let p2_lat = match parts.get(1) {
+            Some(&lat) => match lat.chars().next() {
+                Some(c) => c,
+                None => {
+                    error!("Invalid latitude direction.");
+                    return Ok(Self::null_island());
+                }
+            },
+            None => {
+                error!("Missing latitude direction.");
+                return Ok(Self::null_island());
+            }
+        };
+
+        let p1_lon = match parts.get(2) {
+            Some(&lon) => lon,
+            None => {
+                error!("Missing longitude degrees.");
+                return Ok(Self::null_island());
+            }
+        };
+
+        let p2_lon = match parts.get(3) {
+            Some(&lon) => match lon.chars().next() {
+                Some(c) => c,
+                None => {
+                    error!("Invalid longitude direction.");
+                    return Ok(Self::null_island());
+                }
+            },
+            None => {
+                error!("Missing longitude direction.");
+                return Ok(Self::null_island());
+            }
+        };
+
+        let p1_alt = match parts.get(6) {
+            Some(&alt) => alt,
+            None => {
+                error!("Missing altitude.");
+                return Ok(Self::null_island());
+            }
+        };
+
+        let p1_spd = match parts.get(7) {
+            Some(&spd) => spd,
+            None => {
+                error!("Missing speed.");
+                return Ok(Self::null_island());
+            }
+        };
+
+        // Convert and parse values
+        let latitude = match dms_to_decimal(p1_lat, p2_lat, LATITUDE) {
+            Ok(lat) => lat,
+            Err(_) => {
+                error!("Failed to convert latitude to decimal.");
+                return Ok(Self::null_island());
+            }
+        };
+
+        let longitude = match dms_to_decimal(p1_lon, p2_lon, LONGITUDE) {
+            Ok(lon) => lon,
+            Err(_) => {
+                error!("Failed to convert longitude to decimal.");
+                return Ok(Self::null_island());
+            }
+        };
+
+        let altitude = p1_alt.parse::<f32>().unwrap_or_else(|_| {
+            error!("Failed to parse altitude.");
+            0.0
+        });
+
+        let speed_gps = p1_spd.parse::<f32>().unwrap_or_else(|_| {
+            error!("Failed to parse speed.");
+            0.0
+        });
 
         // Validate coordinates (-90 <= lat <= 90 -180 <= lon <= 180)
         if !Self::validate_coordinates(latitude, longitude) {
@@ -63,7 +151,7 @@ impl GPSInfo {
 
     // Validate coordinates (-90 <= lat <= 90 -180 <= lon <= 180)
     fn validate_coordinates(lat: f64, lon: f64) -> bool {
-        lat >= -90.0 && lat <= 90.0 && lon >= -180.0 && lon <= 180.0
+        (-90.0..=90.0).contains(&lat) && (-180.0..=180.0).contains(&lon)
     }
 
     // Returns 0 0 (Null Island) usefull when the GPS is deactivated or there is some error. https://en.wikipedia.org/wiki/Null_Island
@@ -80,7 +168,7 @@ impl GPSInfo {
         debug!("Start GPS session...");
 
         let response = send_at(port, "AT+CGPSINFO", "+CGPSINFO: ", Duration::from_secs(1))?;
-        return if response != "NO MATCH" {
+        if response != "NO MATCH" {
             if response.contains(",,,,,,,") {
                 //Instead of stopping return Null Island
                 info!("GPS not ready or error");
@@ -90,7 +178,7 @@ impl GPSInfo {
             }
         } else {
             Err(anyhow!("Command output mismatch GPS!"))
-        };
+        }
     }
 }
 
@@ -178,5 +266,5 @@ pub fn enable_gps(port: &mut dyn SerialPort) -> Result<bool> {
 
     send_at(port, "AT+CGPS=1", "OK", Duration::from_secs(1))?;
 
-    return Ok(true);
+    Ok(true)
 }
