@@ -1,0 +1,58 @@
+services:
+  mqtt_broker:
+    image: emqx:5.7.1
+    container_name: emqx1-broker #MQTT Broker
+    restart: unless-stopped
+    volumes:
+      - emqx_data:/opt/emqx/data
+    ports:
+      - 1883:1883
+      - 18083:18083
+    networks:
+      - scooter
+
+  timescaledb:
+    image: timescale/timescaledb-ha:pg16  # Use HA variant since we need Postgis installed
+    container_name: timescaledb
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./timescaledb/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    env_file: "./timescaledb/db.env"
+    networks:
+      - scooter
+
+  bridge:
+    build:
+      context: ./mqtt-postgresql-bridge
+      dockerfile: Dockerfile
+    container_name: mqtt_pg_bridge
+    restart: unless-stopped
+    volumes:
+      - ./mqtt-postgresql-bridge/config.toml:/app/config.toml:ro
+    networks:
+      - scooter
+
+  #TODO CREATE CUSTOM IMAGE TO IMPORT CONFIG (DATASOURCE AND DASHBOARD)
+  grafana:
+    image: grafana/grafana:11.1.1
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - scooter
+
+networks:
+  scooter:
+    external: true
+    driver: bridge
+
+volumes:
+  emqx_data:
+  timescaledb_data:
+  grafana_data:
