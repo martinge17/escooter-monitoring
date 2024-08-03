@@ -28,8 +28,11 @@ pub struct Telemetry {
      * Estimated Distance left (kilometers).
      */
     pub trip_distance_left_km: f32,
-    pub uptime: f32,
-
+    pub uptime_sec: f32,
+    /**
+     * Frame temperature (Celsius).
+     */
+    pub frame_temp: f32,
     pub battery_info: BatteryInfo,
 
     pub gpsinfo: GPSInfo,
@@ -54,7 +57,8 @@ impl Telemetry {
             total_distance_m: motorinfo.total_distance_m,
             trip_distance_m: motorinfo.trip_distance_m,
             trip_distance_left_km: distance_left,
-            uptime: motorinfo.uptime.as_secs_f32(),
+            uptime_sec: motorinfo.uptime.as_secs_f32(),
+            frame_temp: motorinfo.frame_temperature,
             battery_info,
             gpsinfo: gps,
         };
