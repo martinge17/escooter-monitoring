@@ -131,7 +131,7 @@ async fn link_scooter(
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
+        .with_max_level(Level::INFO) //DEBUG
         .with_span_events(FmtSpan::CLOSE)
         .init();
 
@@ -196,7 +196,7 @@ async fn main() -> Result<()> {
         let msg = paho_mqtt::Message::new(&CONFIG.mqtt.topic, json_payload, paho_mqtt::QOS_0);
 
         if let Err(e) = mqtt_client.client.publish(msg).await {
-            tracing::error!("Failed to send MQTT message: {:?}", e);
+            error!("Failed to send MQTT message: {:?}", e);
         }
 
         tokio::time::sleep(Duration::from_secs(CONFIG.mqtt.send_interval)).await;
