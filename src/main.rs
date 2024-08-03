@@ -6,17 +6,21 @@
    - It pull data from the scooter and sends it via MQTT to the server
 
 */
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use btleplug::api::BDAddr;
+use btleplug::platform::Peripheral;
+
 use m365::config::CONFIG;
 use m365::gps_location::enable_gps;
 use m365::telemetry::Telemetry;
-use m365::{AuthToken, ConnectionHelper, LoginRequest, MqttClient, ScooterScanner};
+use m365::{AuthToken, ConnectionHelper, LoginRequest, MiSession, MqttClient, ScooterScanner};
 use std::path::Path;
+use std::process::exit;
+use std::thread::sleep;
 use std::time::Duration;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
-use tracing::{info, Level};
+use tracing::{error, info, Level};
 use tracing_subscriber;
 use tracing_subscriber::fmt::format::FmtSpan;
 
@@ -41,6 +45,89 @@ async fn load_mac() -> Result<BDAddr> {
     Ok(mac)
 }
 
+async fn relink_scooter(
+    connection: ConnectionHelper,
+    device: &Peripheral,
+    token: &AuthToken,
+    mi_session: MiSession,
+) -> Result<MiSession> {
+    loop {
+        info!("Establishing connection with the scooter");
+
+        match connection.connect().await {
+            Ok(true) => {}
+            Ok(false) => {
+                info!("Already connected!");
+                return Ok(mi_session);
+            }
+            Err(e) => {
+                info!("Can't reach the scooter! Is it powered on? Relaunching the program....");
+                return Err(anyhow!("Can't reach the scooter! Is it power on?: {}", e));
+            }
+        }
+
+        info!("Connection established. Now trying to log in");
+
+        //Once connected, login into the scooter (key exchange, read more in the protocol documentation)
+        let mut request = match LoginRequest::new(&device, &token).await {
+            Ok(req) => req,
+            Err(e) => {
+                error!("Failed to create login request: {}", e);
+                tokio::time::sleep(Duration::from_secs(2)).await;
+                continue; //Try again at next iteration
+            }
+        };
+
+        //Start the session
+        match request.start().await {
+            Ok(se) => return Ok(se),
+            Err(e) => {
+                error!("Failed to start session: {}", e);
+                tokio::time::sleep(Duration::from_secs(2)).await;
+                continue;
+            }
+        };
+    }
+}
+
+async fn link_scooter(
+    connection: ConnectionHelper,
+    device: &Peripheral,
+    token: &AuthToken,
+) -> Result<MiSession> {
+    loop {
+        info!("Establishing connection with the scooter");
+        match connection.reconnect().await {
+            Ok(_) => {}
+            Err(..) => {
+                info!("Can't reach the scooter! Is it powered on? Relaunching the program....");
+                return Err(anyhow!("Can't reach the scooter! Is it power on?"));
+            }
+        };
+
+        info!("Connection established. Now trying to log in");
+        //Once connected, login into the scooter (key exchange, read more in the protocol documentation)
+        let mut request = match LoginRequest::new(&device, &token).await {
+            Ok(req) => req,
+            Err(e) => {
+                error!("Failed to create login request: {}", e);
+                tokio::time::sleep(Duration::from_secs(2)).await;
+                continue; //Try again at next iteration
+            }
+        };
+
+        //Start the session
+        match request.start().await {
+            Ok(se) => return Ok(se),
+            Err(e) => {
+                error!("Failed to start session: {}", e);
+                tokio::time::sleep(Duration::from_secs(2)).await;
+                continue;
+            }
+        };
+    }
+}
+
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
@@ -56,17 +143,21 @@ async fn main() -> Result<()> {
     info!("Searching scooter with address: {}", mac);
 
     //Search for scooter with the MAC address provided
-    let mut scanner = ScooterScanner::new().await?;
+    let mut scanner = ScooterScanner::new().await?; //TODO TIMEOUT?
     let scooter = scanner.wait_for(&mac).await?;
     let device = scanner.peripheral(&scooter).await?;
 
     //Connect with the scooter
-    let connection = ConnectionHelper::new(&device);
-    connection.reconnect().await?; //TODO: TEMPORALLY RETRY TO INFINITE (12 hours) REWORK FROM HERE THIS ON SECOND ITERATION TO IMPLEMENT THE BACKOFF
+    let mut connection = ConnectionHelper::new(&device);
 
-    //Once connected, login into the scooter (key exchange, read more in the protocol documentation)
-    let mut request = LoginRequest::new(&device, &token).await?;
-    let mut session = request.start().await?;
+    //This inside function
+    let mut session = match link_scooter(connection, &device, &token).await {
+        Ok(ses) => ses,
+        Err(e) => {
+            error!("{}", e);
+            exit(1);
+        }
+    };
 
     //Once we establish an encrypted connection with the scooter, continue the flow by connecting to the MQTT broker
 
@@ -82,10 +173,22 @@ async fn main() -> Result<()> {
     //Enable GPS
     enable_gps(&mut *port).expect("Can't enable GPS");
 
-    //TODO: Call loop to pull data from the scooter and send it
     loop {
-        //TODO: RECONNECT TO SCOOTER IF FAILED
-        let data = Telemetry::pull_scooter(&mut session, &mut *port).await?;
+        let data = match Telemetry::pull_scooter(&mut session, &mut *port).await {
+            Ok(data) => data,
+            Err(e) => {
+                error!("Error pulling data from scooter: {}", e);
+                connection = ConnectionHelper::new(&device);
+                session = match relink_scooter(connection, &device, &token, session).await {
+                    Ok(ses) => ses,
+                    Err(..) => {
+                        exit(1);
+                    }
+                };
+                continue; //Try to pull data again on next iteration
+            }
+        };
+
         let json_payload = serde_json::to_string(&data)?;
 
         info!("Publishing message: {}", json_payload);
