@@ -80,6 +80,7 @@ def on_message(client, userdata, msg):
                 )
             except Exception as e:
                 logging.error(f"Error executing general_info query: {e}")
+                conn.rollback()  # For security reasons, postgresql locks the db when a query produces an error and you try to run another query without first rolling back the transaction
                 raise
 
             # Insert to battery_info
