@@ -76,3 +76,12 @@ GRANT USAGE ON SCHEMA public TO grafana;
 GRANT SELECT ON general_info TO grafana;
 GRANT SELECT ON battery_info TO grafana;
 GRANT SELECT ON location_info TO grafana;
+
+
+--- Create read-only user for API ---
+CREATE USER api WITH PASSWORD 'changeme'; --TODO!!!!! NOTE THIS ON README
+GRANT CONNECT ON DATABASE scooter_data TO api;
+GRANT USAGE ON SCHEMA public TO api;
+GRANT SELECT ON general_info TO api;
+GRANT SELECT ON battery_info TO api;
+GRANT SELECT ON location_info TO api;
