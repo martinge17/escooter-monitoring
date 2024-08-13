@@ -1,0 +1,16 @@
+meta {
+  name: get_general_with_dates
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://127.0.0.1:8000/api/v1/data/general?start_time=2024-07-29&end_time=2024-08-01T11:00:00
+  body: none
+  auth: none
+}
+
+params:query {
+  start_time: 2024-07-29
+  end_time: 2024-08-01T11:00:00
+}
