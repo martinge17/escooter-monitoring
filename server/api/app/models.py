@@ -6,7 +6,8 @@ from sqlalchemy import (
     SmallInteger,
 )
 from database import Base
-from geoalchemy2 import Geography
+from geoalchemy2 import Geography, functions
+from sqlalchemy.orm import column_property
 
 
 # Since this API is intended to be read-only, constraints are not defined here.
@@ -44,9 +45,12 @@ class LocationInfo(Base):
     time = Column(TIMESTAMP(timezone=True), primary_key=True, nullable=False)
     location = Column(
         Geography(geometry_type="POINT", srid=4326), nullable=False
-    )  # TODO USE GeoAlchemy2 https://geoalchemy-2.readthedocs.io/en/latest/index.html AND CONVERT THIS INTO LATITUDE AND LONGITUDE FIELD FOR THE API
+    )  # GeoAlchemy2 https://geoalchemy-2.readthedocs.io/en/latest/index.html
     altitude = Column(DECIMAL(6, 2), nullable=False)
     gps_speed = Column(DECIMAL(4, 2), nullable=False)
+
+    # Test try to convert to geojson https://geojson.org/
+    geojson = column_property(functions.ST_AsGeoJSON(location))  # Map an SQL response
 
 
 # Model data classes

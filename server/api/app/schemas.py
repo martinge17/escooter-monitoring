@@ -1,13 +1,11 @@
 # Pydantic models to serialize data into Python
 from pydantic import (
     BaseModel,
-    condecimal,
-    conint,
-    PositiveFloat,
+    field_validator,
     PositiveInt,
-    FiniteFloat,
 )
 from datetime import datetime
+import json
 
 
 class GeneralInfo(BaseModel):
@@ -37,11 +35,19 @@ class BatteryInfo(BaseModel):
         orm_mode = True
 
 
-class LocationInfo(BaseModel):
+class LocationInfoGeoJSON(BaseModel):
     time: datetime
-    location: str  # TODO FIX
+    geojson: dict  # Here return a GeoJSON for simplicity
     altitude: float
     gps_speed: float
+
+    # Since by default ST_AsGeoJSON returns the json as a string.
+    # Create a field_validator to parse that string into a real object before returning it
+    @field_validator("geojson", mode="before")
+    def parse_geojson(cls, value):
+        if isinstance(value, str):
+            return json.loads(value)  # Convert the JSON string to a dictionary
+        return value
 
     class Config:
         orm_mode = True

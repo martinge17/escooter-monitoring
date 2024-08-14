@@ -7,7 +7,7 @@ from models import GeneralInfo as GeneralInfoModel  # SQLAlchemy model
 from models import BatteryInfo as BatteryInfoModel  # SQLAlchemy model
 from models import LocationInfo as LocationInfoModel  # SQLAlchemy model
 
-from schemas import GeneralInfo, BatteryInfo, LocationInfo  # Pydantic model
+from schemas import GeneralInfo, BatteryInfo, LocationInfoGeoJSON  # Pydantic model
 
 
 from sqlalchemy import select
@@ -69,6 +69,10 @@ async def global_data(
     limit: int = 10,
 ):  # TODO
     return {"Here you will see the latest available data"}
+
+
+# TODO: USE SCALAR FOR INPROVED EFICIENCY
+# https://hatchjs.com/sqlalchemy-scalars-vs-all/
 
 
 # Datatime accepts timestamp with hours minutes and second. If you don't specify hours and minutes it defaults to 00:00 of
@@ -150,7 +154,7 @@ async def location_data(
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
     order: OrderSelector = "asc",
-) -> Page[LocationInfo]:  # TODO DOES NOT WORK WELL, MAKE IT RETURN A GeoJSON
+) -> Page[LocationInfoGeoJSON]:
     # Check date errors before anything
     validate_timeintervals(start_time, end_time)
 
