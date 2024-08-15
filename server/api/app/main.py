@@ -124,14 +124,35 @@ async def global_data(  # TODO TRY TO REFACTOR
 # If you want to include per example the whole day 2024-08-01 in the query you should add 2024-08-01T23:59:59 or 2024-08-02
 # TODO: EXPLAIN THIS WITH EXAMPLE IN THE OPENAPI DOCS
 
-# Extra parameter to select asc or desc
-# If not time interval is specified, it will return the latest that starting from the most recent sample
-# If
 
+# Base function to query data from the DB
+def build_query(
+    model: Union[
+        Type[GeneralInfoModel], Type[BatteryInfoModel], Type[LocationInfoModel]
+    ],
+    order: OrderSelector,
+    start_time: Optional[datetime] = None,
+    end_time: Optional[datetime] = None,
+):
+    # Check date errors before anything
+    validate_timeintervals(start_time, end_time)
 
-class OrderSelector(str, Enum):
-    asc = "asc"
-    desc = "desc"
+    # Construct the base query with optional filters
+    query = select(model)
+
+    if start_time:  # If there is start_time filter by that
+        query = query.where(model.time >= start_time)
+
+    if end_time:  # If there is end_time filter by that
+        query = query.where(model.time <= end_time)
+
+    # Order selector
+    if order == "asc":
+        query = query.order_by(model.time.asc())
+    else:
+        query = query.order_by(model.time.desc())
+
+    return query
 
 
 @app.get("/api/v1/data/general")
@@ -142,24 +163,7 @@ async def general_data(
     order: OrderSelector = "asc",
 ) -> Page[GeneralInfo]:
 
-    # Check date errors before anything
-    validate_timeintervals(start_time, end_time)
-
-    # Construct the base query with optional filters
-    query = select(GeneralInfoModel)
-
-    if start_time:  # If there is start_time filter by that
-        query = query.where(GeneralInfoModel.time >= start_time)
-
-    if end_time:  # If there is end_time filter by that
-        query = query.where(GeneralInfoModel.time <= end_time)
-
-    # Order selector
-    if order == "asc":
-        query = query.order_by(GeneralInfoModel.time.asc())
-    else:
-        query = query.order_by(GeneralInfoModel.time.desc())
-
+    query = build_query(GeneralInfoModel, order, start_time, end_time)
     return paginate(db, query)
 
 
@@ -171,24 +175,7 @@ async def battery_data(
     order: OrderSelector = "asc",
 ) -> Page[BatteryInfo]:
 
-    # Check date errors before anything
-    validate_timeintervals(start_time, end_time)
-
-    # Construct the base query with optional filters
-    query = select(BatteryInfoModel)
-
-    if start_time:  # If there is start_time filter by that
-        query = query.where(BatteryInfoModel.time >= start_time)
-
-    if end_time:  # If there is end_time filter by that
-        query = query.where(BatteryInfoModel.time <= end_time)
-
-    # Order selector
-    if order == "asc":
-        query = query.order_by(BatteryInfoModel.time.asc())
-    else:
-        query = query.order_by(BatteryInfoModel.time.desc())
-
+    query = build_query(BatteryInfoModel, order, start_time, end_time)
     return paginate(db, query)
 
 
@@ -199,25 +186,18 @@ async def location_data(
     end_time: Optional[datetime] = None,
     order: OrderSelector = "asc",
 ) -> Page[LocationInfoGeoJSON]:
-    # Check date errors before anything
-    validate_timeintervals(start_time, end_time)
 
-    # Construct the base query with optional filters
-    query = select(LocationInfoModel)
-
-    if start_time:  # If there is start_time filter by that
-        query = query.where(LocationInfoModel.time >= start_time)
-
-    if end_time:  # If there is end_time filter by that
-        query = query.where(LocationInfoModel.time <= end_time)
-
-    # Order selector
-    if order == "asc":
-        query = query.order_by(LocationInfoModel.time.asc())
-    else:
-        query = query.order_by(LocationInfoModel.time.desc())
-
+    query = build_query(LocationInfoModel, order, start_time, end_time)
     return paginate(db, query)
+
+
+class RelayPowerModes(str, Enum):
+    open = "open"  # If it is open then there is no power
+    closed = "close"
+
+
+class PowerCommand(BaseModel):
+    state: RelayPowerModes
 
 
 @app.post(
