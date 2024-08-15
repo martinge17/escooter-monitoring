@@ -1,13 +1,20 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union, Type
 from datetime import datetime
 from sqlalchemy.orm import Session
 from models import GeneralInfo as GeneralInfoModel  # SQLAlchemy model
 from models import BatteryInfo as BatteryInfoModel  # SQLAlchemy model
 from models import LocationInfo as LocationInfoModel  # SQLAlchemy model
 
-from schemas import GeneralInfo, BatteryInfo, LocationInfoGeoJSON  # Pydantic model
+from pydantic import BaseModel
+
+from schemas import (
+    GeneralInfo,
+    BatteryInfo,
+    LocationInfoGeoJSON,
+    UnifiedGlobalData,
+)  # Pydantic model
 
 
 from sqlalchemy import select
@@ -43,11 +50,6 @@ def get_db():
 db = get_db()
 
 
-class RelayPowerModes(str, Enum):
-    open = "open"
-    closed = "closed"
-
-
 def validate_timeintervals(
     start: Optional[datetime] = None, end: Optional[datetime] = None
 ):
@@ -58,17 +60,59 @@ def validate_timeintervals(
         )
 
 
+class OrderSelector(str, Enum):
+    asc = "asc"
+    desc = "desc"
+
+
 @app.get(
     "/api/v1/data",
     summary="Retrieve the latest data for all categories (battery,location,general)",
 )
-async def global_data(
+async def global_data(  # TODO TRY TO REFACTOR
+    db: Session = Depends(get_db),
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
-    offset: int = 0,
-    limit: int = 10,
-):  # TODO
-    return {"Here you will see the latest available data"}
+    order: OrderSelector = "asc",
+) -> Page[UnifiedGlobalData]:
+
+    # Base query with optional filters for all three models
+    query = (
+        select(
+            GeneralInfoModel.time,
+            GeneralInfoModel.speed_kmh,
+            GeneralInfoModel.trip_distance_m,
+            GeneralInfoModel.uptime_sec,
+            GeneralInfoModel.total_distance_m,
+            GeneralInfoModel.est_distance_left_km,
+            GeneralInfoModel.frame_temp,
+            BatteryInfoModel.capacity,
+            BatteryInfoModel.percent,
+            BatteryInfoModel.voltage,
+            BatteryInfoModel.current,
+            BatteryInfoModel.power,
+            BatteryInfoModel.temp1,
+            BatteryInfoModel.temp2,
+            LocationInfoModel.geojson,
+            LocationInfoModel.altitude,
+            LocationInfoModel.gps_speed,
+        )
+        .join(BatteryInfoModel, GeneralInfoModel.time == BatteryInfoModel.time)
+        .join(LocationInfoModel, GeneralInfoModel.time == LocationInfoModel.time)
+    )
+
+    if start_time:
+        query = query.where(GeneralInfoModel.time >= start_time)
+    if end_time:
+        query = query.where(GeneralInfoModel.time <= end_time)
+
+    # Order selector
+    if order == OrderSelector.asc:
+        query = query.order_by(GeneralInfoModel.time.asc())
+    else:
+        query = query.order_by(GeneralInfoModel.time.desc())
+
+    return paginate(db, query)
 
 
 # TODO: USE SCALAR FOR INPROVED EFICIENCY
