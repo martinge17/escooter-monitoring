@@ -1,11 +1,8 @@
 # Pydantic models to serialize data into Python
-from pydantic import (
-    BaseModel,
-    field_validator,
-    PositiveInt,
-)
+from pydantic import BaseModel, field_validator, PositiveInt, ConfigDict
 from datetime import datetime
 import json
+from models import RelayPowerModes
 
 
 class GeneralInfo(BaseModel):
@@ -17,8 +14,7 @@ class GeneralInfo(BaseModel):
     est_distance_left_km: float
     frame_temp: float
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BatteryInfo(BaseModel):
@@ -31,8 +27,7 @@ class BatteryInfo(BaseModel):
     temp1: int
     temp2: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LocationInfoGeoJSON(BaseModel):
