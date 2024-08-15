@@ -49,5 +49,42 @@ class LocationInfoGeoJSON(BaseModel):
             return json.loads(value)  # Convert the JSON string to a dictionary
         return value
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UnifiedGlobalData(BaseModel):
+    # time: datetime
+    # general: GeneralInfo
+    # battery: BatteryInfo
+    # location: LocationInfoGeoJSON
+    time: datetime
+    speed_kmh: float
+    trip_distance_m: float
+    uptime_sec: PositiveInt
+    total_distance_m: float
+    est_distance_left_km: float
+    frame_temp: float
+    capacity: float
+    percent: int
+    voltage: float
+    current: float
+    power: float  # Generated column in DB
+    temp1: int
+    temp2: int
+    geojson: dict  # Here return a GeoJSON for simplicity
+    altitude: float
+    gps_speed: float
+
+    # Since by default ST_AsGeoJSON returns the json as a string.
+    # Create a field_validator to parse that string into a real object before returning it
+    @field_validator("geojson", mode="before")
+    def parse_geojson(cls, value):
+        if isinstance(value, str):
+            return json.loads(value)  # Convert the JSON string to a dictionary
+        return value
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PowerCommand(BaseModel):
+    state: RelayPowerModes
