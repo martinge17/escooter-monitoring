@@ -1,0 +1,16 @@
+meta {
+  name: get_global_without_dates
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://127.0.0.1:8000/api/v1/data?page=1&size=1
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  size: 1
+}
