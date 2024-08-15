@@ -1,0 +1,8 @@
+[mqtt]
+broker =
+port =
+client =
+topic =
+
+[gpio]
+pin = 23
