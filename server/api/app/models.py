@@ -8,6 +8,7 @@ from sqlalchemy import (
 from database import Base
 from geoalchemy2 import Geography, functions
 from sqlalchemy.orm import column_property
+from enum import Enum
 
 
 # Since this API is intended to be read-only, constraints are not defined here.
