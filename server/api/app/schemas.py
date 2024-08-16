@@ -2,7 +2,30 @@
 from pydantic import BaseModel, field_validator, PositiveInt, ConfigDict
 from datetime import datetime
 import json
+from enum import Enum
+from typing import Union, Literal
 from models import RelayPowerModes
+
+
+class RelayPowerModes(str, Enum):
+    open = "open"  # If it is open then there is no power
+    close = "close"
+
+
+class PowerCommand(BaseModel):
+    status: RelayPowerModes
+
+
+class MQTTResponse(BaseModel):
+    result: bool
+    status: Union[
+        RelayPowerModes, Literal["unknown"]
+    ]  # Since it is possible that the scooter return status "unknown"
+    reason: str
+
+
+class PowerResponse(BaseModel):
+    response: MQTTResponse
 
 
 class GeneralInfo(BaseModel):
@@ -79,7 +102,3 @@ class UnifiedGlobalData(BaseModel):
         return value
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class PowerCommand(BaseModel):
-    state: RelayPowerModes

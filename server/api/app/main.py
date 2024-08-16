@@ -1,19 +1,25 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+import asyncio
+from pydoc import cli
+from fastapi import FastAPI, Depends, HTTPException
+from contextlib import asynccontextmanager
 from enum import Enum
 from typing import Optional, Union, Type
 from datetime import datetime
+from pydantic import Json, JsonValue
 from sqlalchemy.orm import Session
 from models import GeneralInfo as GeneralInfoModel  # SQLAlchemy model
 from models import BatteryInfo as BatteryInfoModel  # SQLAlchemy model
 from models import LocationInfo as LocationInfoModel  # SQLAlchemy model
 
-from pydantic import BaseModel
-
 from schemas import (
     GeneralInfo,
     BatteryInfo,
     LocationInfoGeoJSON,
+    PowerResponse,
     UnifiedGlobalData,
+    PowerCommand,
+    RelayPowerModes,
+    MQTTResponse,
 )  # Pydantic model
 
 
@@ -26,9 +32,73 @@ from fastapi_pagination import add_pagination
 from database import SessionLocal, engine
 import models
 
+#########################################################
+# TODO FOR TEST PASAR A ARHCIVO MQTT
+import paho.mqtt.client as mqtt_client
+import json
+
+client_id = "test-fastapi"
+broker = "localhost"
+mqtt_port = 1883
+topic = "vehicle/1/control"
+
+mqtt_response = None  # TODO: PROPERLY HANDLE CONCURRENCY FOR MQTT_RESPONSE
+
+
+def on_message_ctrl(client, userdata, msg):
+
+    global mqtt_response
+    try:
+        payload = json.loads(msg.payload.decode())
+        mqtt_response = payload  ##TODO: TO PYDANTIC MODEL
+
+        # Avoid infinite loops by checking if the message received == client response
+        if next(iter(mqtt_response)) != "response":
+            return
+
+        print(f"Received Ctrl MQTT message: {mqtt_response}")
+    except Exception as e:
+        print(f"Can't process message: {e}")
+
+
+def on_connect(client, userdata, flags, reason_code, properties):
+    if reason_code == 0:
+        print("Connected to MQTT Broker!")
+        client.subscribe(topic, 1)
+    else:
+        print("Failed to connect, return code %d\n", reason_code)
+
+
+client = mqtt_client.Client(
+    mqtt_client.CallbackAPIVersion.VERSION2, client_id, protocol=mqtt_client.MQTTv5
+)
+
+
+client.message_callback_add(
+    topic, on_message_ctrl
+)  # Defines how to handle control messages only
+
+client.on_connect = on_connect
+
+
+# https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python
+# https://fastapi.tiangolo.com/advanced/events/#async-context-manager
+# TODO MQTT
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    client.connect(broker, 1883, 60)
+    client.loop_start()
+    yield  # From here the code is executed on exit
+    client.disconnect()
+    client.loop_stop()
+
+
+##########################################################
+
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
+    lifespan=lifespan,
     title="Electric Scooter information and control",
     description="ChangeME",
     version="0.1.0",
@@ -48,6 +118,12 @@ def get_db():
 
 
 db = get_db()
+
+
+########################################################################################################
+
+
+########################################################################################################
 
 
 def validate_timeintervals(
@@ -115,7 +191,7 @@ async def global_data(  # TODO TRY TO REFACTOR
     return paginate(db, query)
 
 
-# TODO: USE SCALAR FOR INPROVED EFICIENCY
+# TODO: USE SCALAR FOR IMPROVED EFFICIENCY
 # https://hatchjs.com/sqlalchemy-scalars-vs-all/
 
 
@@ -191,17 +267,56 @@ async def location_data(
     return paginate(db, query)
 
 
-class RelayPowerModes(str, Enum):
-    open = "open"  # If it is open then there is no power
-    closed = "close"
+async def command_to_scooter(command: Union[PowerCommand, dict]):
+
+    try:
+        global mqtt_response
+        mqtt_response = None
+
+        if type(command) is PowerCommand:
+            payload = command.model_dump_json()
+        else:
+            payload = json.dumps(command)
+
+        print(f"Publishing: {payload}")
+        s = client.publish(topic, payload)
+
+        # Wait for publish and response 5 secs
+        await asyncio.sleep(3)
+
+        if s.is_published() == False:
+            print("Cant publish message")
+            raise ConnectionError
+
+        if mqtt_response is None:
+            return PowerResponse(
+                MQTTResponse(
+                    result=False,
+                    status="unknown",
+                    reason="Didn't get response from scooter. Please check status using get_relay_status",
+                )
+            )
+
+        return mqtt_response
+
+    except ConnectionError:
+        return PowerResponse(
+            MQTTResponse(result=False, reason="Can't send message to MQTT broker")
+        )
 
 
-class PowerCommand(BaseModel):
-    state: RelayPowerModes
+@app.get("/api/v1/command/get_relay_status", summary="Gets the power relay status")
+async def get_relay_status() -> PowerResponse:
+
+    return await command_to_scooter({"status": "query"})
 
 
+# https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-commands#door-unlock
 @app.post(
     "/api/v1/command/set_power", summary="Sets the power relay state to open or closed"
 )
-async def set_power(mode: RelayPowerModes):  # TODO
-    return {"OPERATION X DONE. CURRENT STATE IS X"}
+async def set_power(
+    command: PowerCommand,
+) -> PowerResponse:
+
+    return await command_to_scooter(command)
