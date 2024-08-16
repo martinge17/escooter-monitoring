@@ -1,0 +1,25 @@
+# https://github.com/torfsen/python-systemd-tutorial
+# https://wiki.archlinux.org/title/Systemd/User
+
+# Put this unit in ~./config/systemd/user/
+
+# Avoid having to login to start the service
+# sudo loginctl enable-linger $USER
+
+
+[Unit]
+Description=MQTT to Relay service for Scooter Monitoring
+After=default.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/scooter/relay.py
+Restart=on-failure
+# Our service will notify systemd once it is up and running
+Type=notify
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=relay-service
+
+[Install]
+# Start the service at boot
+WantedBy=default.target
