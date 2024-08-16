@@ -2,24 +2,22 @@ import gpiozero
 from paho.mqtt import client as mqtt_client
 import logging
 import sys
-
-# from systemd.journal import JournalHandler
-
-# import tomllib
+import tomllib
 import json
+from systemd.journal import JournalHandler
+
+# https://github.com/systemd/python-systemd?tab=readme-ov-file  Install using apt install python3-systemd
+# It works on ArchLinux
 
 # Run with GPIOZERO_PIN_FACTORY=mock for development
 
-
 # https://webscrapingsite.com/resources/python-script-service-guide/
 
-# Enable logging to stdout
-logging.basicConfig(
-    stream=sys.stdout,
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
-"""
+# Logging to systemd journal
+log = logging.getLogger()
+log.addHandler(JournalHandler())
+log.setLevel(logging.INFO)
+
 # Load configuration
 try:
     file = open("config.toml", "rb")
@@ -32,22 +30,14 @@ else:
 
 logging.info("Configuration loaded!")
 
-"""
 # Check the GPIO pinout guide here https://pinout.xyz
-# RELAY_PIN = config["gpio"]["pin"]
-RELAY_PIN = 23
-"""
+RELAY_PIN = config["gpio"]["pin"]
+
 # Load mqtt broker config
 broker = config["mqtt"]["broker"]
 mqtt_port = config["mqtt"]["port"]
 client_id = config["mqtt"]["client"]
 topic = config["mqtt"]["topic"]
-"""
-
-broker = "localhost"
-mqtt_port = 1883
-client_id = "relay_martinete"
-topic = "vehicle/1/control"
 
 # Relays have different modes https://engineerfix.com/electrical/circuits/normally-open-vs-normally-closed-what-do-they-mean/
 # Normally Closed => Closed by default
@@ -82,7 +72,7 @@ def on_control_message(client, userdata, msg):
             "status": "open"
         }
     """
-
+    # Prepare the response
     response = {
         "response": {
             "result": False,
