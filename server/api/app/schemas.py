@@ -71,10 +71,6 @@ class LocationInfoGeoJSON(BaseModel):
 
 
 class UnifiedGlobalData(BaseModel):
-    # time: datetime
-    # general: GeneralInfo
-    # battery: BatteryInfo
-    # location: LocationInfoGeoJSON
     time: datetime
     speed_kmh: float
     trip_distance_m: float
