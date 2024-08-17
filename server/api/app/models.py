@@ -12,8 +12,6 @@ from enum import Enum
 
 
 # Since this API is intended to be read-only, constraints are not defined here.
-
-
 # Model the database tables for the ORM to access the DB.
 class GeneralInfo(Base):
     __tablename__ = "general_info"
