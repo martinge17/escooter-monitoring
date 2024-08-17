@@ -50,7 +50,7 @@ to_scooter_topic = settings.mqtt.to_scooter_topic
 broker = settings.mqtt.broker
 port = settings.mqtt.port
 
-mqtt_response = None  # TODO: PROPERLY HANDLE CONCURRENCY FOR MQTT_RESPONSE
+mqtt_response = None
 
 
 def on_message_ctrl(client, userdata, msg):
@@ -265,7 +265,6 @@ async def command_to_scooter(command: Union[PowerCommand, dict]):
 
     try:
         global mqtt_response
-        mqtt_response = None
 
         if not client.is_connected():
             raise ConnectionError("Can't reach the MQTT broker")
@@ -294,7 +293,10 @@ async def command_to_scooter(command: Union[PowerCommand, dict]):
                 )
             )
 
-        return mqtt_response
+        result = mqtt_response
+        mqtt_response = None
+
+        return result
 
     except (RuntimeError, ConnectionError) as rt:  # is_published would return an
         raise HTTPException(
