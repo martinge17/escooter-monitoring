@@ -18,7 +18,6 @@ from schemas import (
     PowerResponse,
     UnifiedGlobalData,
     PowerCommand,
-    RelayPowerModes,
     MQTTResponse,
 )  # Pydantic model
 
@@ -37,10 +36,26 @@ import models
 import paho.mqtt.client as mqtt_client
 import json
 
-client_id = "test-fastapi"
-broker = "localhost"
-mqtt_port = 1883
-topic = "vehicle/1/control"
+from functools import lru_cache  # Using lru_cache config file is only read once
+from config import Settings
+
+# Loading the configuration
+
+
+@lru_cache
+def get_settings():
+    return Settings()
+
+
+settings = get_settings()
+
+client_id = settings.mqtt.client
+topic = settings.mqtt.topic
+broker = settings.mqtt.broker
+port = settings.mqtt.port
+
+
+#########################################################
 
 mqtt_response = None  # TODO: PROPERLY HANDLE CONCURRENCY FOR MQTT_RESPONSE
 
@@ -81,19 +96,28 @@ client.message_callback_add(
 client.on_connect = on_connect
 
 
+# Database Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+db = get_db()
+
+
 # https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python
 # https://fastapi.tiangolo.com/advanced/events/#async-context-manager
-# TODO MQTT
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    client.connect(broker, 1883, 60)
+    client.connect(broker, port, 60)
     client.loop_start()
     yield  # From here the code is executed on exit
     client.disconnect()
     client.loop_stop()
 
-
-##########################################################
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -108,24 +132,7 @@ app = FastAPI(
 add_pagination(app)
 
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-db = get_db()
-
-
-########################################################################################################
-
-
-########################################################################################################
-
-
+# Check if end_time is posterior than start_time
 def validate_timeintervals(
     start: Optional[datetime] = None, end: Optional[datetime] = None
 ):
@@ -145,7 +152,7 @@ class OrderSelector(str, Enum):
     "/api/v1/data",
     summary="Retrieve the latest data for all categories (battery,location,general)",
 )
-async def global_data(  # TODO TRY TO REFACTOR
+async def global_data(
     db: Session = Depends(get_db),
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
@@ -311,7 +318,7 @@ async def get_relay_status() -> PowerResponse:
     return await command_to_scooter({"status": "query"})
 
 
-# https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-commands#door-unlock
+# Example https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-commands#door-unlock
 @app.post(
     "/api/v1/command/set_power", summary="Sets the power relay state to open or closed"
 )
