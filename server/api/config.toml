@@ -1,0 +1,13 @@
+[mqtt]
+broker =
+port =
+client =
+to_server_topic =
+to_scooter_topic =
+
+[database]
+db_hostname=
+db_port=
+db_name=
+user=
+password=
