@@ -37,7 +37,8 @@ RELAY_PIN = config["gpio"]["pin"]
 broker = config["mqtt"]["broker"]
 mqtt_port = config["mqtt"]["port"]
 client_id = config["mqtt"]["client"]
-topic = config["mqtt"]["topic"]
+to_scooter_topic = config["mqtt"]["to_scooter_topic"]
+to_server_topic = config["mqtt"]["to_server_topic"]
 
 # Relays have different modes https://engineerfix.com/electrical/circuits/normally-open-vs-normally-closed-what-do-they-mean/
 # Normally Closed => Closed by default
@@ -56,7 +57,7 @@ relay = gpiozero.OutputDevice(RELAY_PIN, active_high=True, initial_value=False)
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code == 0:
         logging.info("Connected to MQTT Broker!")
-        client.subscribe(topic, 1)
+        client.subscribe(to_scooter_topic, 1)
     else:
         logging.exception("Failed to connect, return code %d\n", reason_code)
 
@@ -84,10 +85,6 @@ def on_control_message(client, userdata, msg):
     message = msg.payload.decode()
     data = json.loads(message)
 
-    # Avoid infinite loops by checking if the message received == client response
-    if next(iter(data)) == "response":
-        return
-
     logging.info(f"Received {data}")
 
     logging.info(data["status"])
@@ -113,7 +110,7 @@ def on_control_message(client, userdata, msg):
         response["response"]["reason"] = str(e)
 
     logging.info(f"Sending response {response}")
-    client.publish(topic, json.dumps(response))
+    client.publish(to_server_topic, json.dumps(response), 1)
 
 
 #  Create the MQTT client
@@ -123,7 +120,7 @@ client = mqtt_client.Client(
 client.on_connect = on_connect
 
 # This filters the message action only to the desired topic
-client.message_callback_add(topic, on_control_message)
+client.message_callback_add(to_scooter_topic, on_control_message)
 
 # Connect to the broker
 client.connect(broker, mqtt_port, 60)

@@ -2,7 +2,7 @@
 broker =
 port =
 client =
-topic =
-
+to_scooter_topic =
+to_server_topic =
 [gpio]
 pin = 23
