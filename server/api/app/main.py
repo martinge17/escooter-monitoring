@@ -30,9 +30,6 @@ from fastapi_pagination import add_pagination
 
 from database import SessionLocal, engine
 import models
-
-#########################################################
-# TODO FOR TEST PASAR A ARHCIVO MQTT
 import paho.mqtt.client as mqtt_client
 import json
 
