@@ -14,7 +14,8 @@ class Mqtt(BaseModel):
     broker: str
     port: int
     client: str
-    topic: str
+    to_server_topic: str
+    to_scooter_topic: str
 
 
 class Database(BaseModel):
