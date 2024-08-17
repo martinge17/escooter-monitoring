@@ -35,6 +35,17 @@ services:
     networks:
       - scooter
 
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: scooter_api
+    restart: unless-stopped
+    volumes:
+      - ./api/config.toml:/code/app/config.toml:ro
+    networks:
+      - scooter
+
   #TODO CREATE CUSTOM IMAGE TO IMPORT CONFIG (DATASOURCE AND DASHBOARD)
   grafana:
     image: grafana/grafana:11.1.1
