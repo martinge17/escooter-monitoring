@@ -53,3 +53,6 @@ class LocationInfo(Base):
 
 
 # Model data classes
+class RelayPowerModes(str, Enum):
+    open = "open"  # If it is open then there is no power
+    closed = "closed"
