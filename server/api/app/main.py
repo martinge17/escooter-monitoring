@@ -146,6 +146,12 @@ async def global_data(
     end_time: Optional[datetime] = None,
     order: OrderSelector = "asc",
 ) -> Page[UnifiedGlobalData]:
+    """
+    Datatime accepts timestamp with hours minutes and second. If you don't specify hours and minutes it defaults to 00:00 of
+    that date so if you type end_time 2024-08-01 it will show all results until 2024-08-01 00:00 so no result from that day will be shown
+    If you want to include per example the whole day 2024-08-01 in the query you should add 2024-08-01T23:59:59 or 2024-08-02
+
+    """
 
     # Base query with optional filters for all three models
     query = (
@@ -229,7 +235,12 @@ async def general_data(
     end_time: Optional[datetime] = None,
     order: OrderSelector = "asc",
 ) -> Page[GeneralInfo]:
+    """
+    Datatime accepts timestamp with hours minutes and second. If you don't specify hours and minutes it defaults to 00:00 of
+    that date so if you type end_time 2024-08-01 it will show all results until 2024-08-01 00:00 so no result from that day will be shown
+    If you want to include per example the whole day 2024-08-01 in the query you should add 2024-08-01T23:59:59 or 2024-08-02
 
+    """
     query = build_query(GeneralInfoModel, order, start_time, end_time)
     return paginate(db, query)
 
@@ -241,6 +252,12 @@ async def battery_data(
     end_time: Optional[datetime] = None,
     order: OrderSelector = "asc",
 ) -> Page[BatteryInfo]:
+    """
+    Datatime accepts timestamp with hours minutes and second. If you don't specify hours and minutes it defaults to 00:00 of
+    that date so if you type end_time 2024-08-01 it will show all results until 2024-08-01 00:00 so no result from that day will be shown
+    If you want to include per example the whole day 2024-08-01 in the query you should add 2024-08-01T23:59:59 or 2024-08-02
+
+    """
 
     query = build_query(BatteryInfoModel, order, start_time, end_time)
     return paginate(db, query)
@@ -253,7 +270,12 @@ async def location_data(
     end_time: Optional[datetime] = None,
     order: OrderSelector = "asc",
 ) -> Page[LocationInfoGeoJSON]:
+    """
+    Datatime accepts timestamp with hours minutes and second. If you don't specify hours and minutes it defaults to 00:00 of
+    that date so if you type end_time 2024-08-01 it will show all results until 2024-08-01 00:00 so no result from that day will be shown
+    If you want to include per example the whole day 2024-08-01 in the query you should add 2024-08-01T23:59:59 or 2024-08-02
 
+    """
     query = build_query(LocationInfoModel, order, start_time, end_time)
     return paginate(db, query)
 
