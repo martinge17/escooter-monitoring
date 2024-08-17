@@ -3,6 +3,7 @@ fastapi-pagination == 0.12.26 # I will use this integration since I have very li
 paho-mqtt == 2.1.0 # Latest stable release
 psycopg == 3.2.1
 pydantic == 2.8.2
+pydantic-settings
 sqlalchemy == 2.0.32
 sqlmodel == 0.0.21
 GeoAlchemy2 == 0.15.2
