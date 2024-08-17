@@ -1,11 +1,9 @@
 import asyncio
-from pydoc import cli
 from fastapi import FastAPI, Depends, HTTPException
 from contextlib import asynccontextmanager
 from enum import Enum
 from typing import Optional, Union, Type
 from datetime import datetime
-from pydantic import Json, JsonValue
 from sqlalchemy.orm import Session
 from models import GeneralInfo as GeneralInfoModel  # SQLAlchemy model
 from models import BatteryInfo as BatteryInfoModel  # SQLAlchemy model
@@ -47,12 +45,10 @@ def get_settings():
 settings = get_settings()
 
 client_id = settings.mqtt.client
-topic = settings.mqtt.topic
+to_server_topic = settings.mqtt.to_server_topic
+to_scooter_topic = settings.mqtt.to_scooter_topic
 broker = settings.mqtt.broker
 port = settings.mqtt.port
-
-
-#########################################################
 
 mqtt_response = None  # TODO: PROPERLY HANDLE CONCURRENCY FOR MQTT_RESPONSE
 
@@ -61,12 +57,7 @@ def on_message_ctrl(client, userdata, msg):
 
     global mqtt_response
     try:
-        payload = json.loads(msg.payload.decode())
-        mqtt_response = payload  ##TODO: TO PYDANTIC MODEL
-
-        # Avoid infinite loops by checking if the message received == client response
-        if next(iter(mqtt_response)) != "response":
-            return
+        mqtt_response = json.loads(msg.payload)
 
         print(f"Received Ctrl MQTT message: {mqtt_response}")
     except Exception as e:
@@ -76,7 +67,7 @@ def on_message_ctrl(client, userdata, msg):
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code == 0:
         print("Connected to MQTT Broker!")
-        client.subscribe(topic, 1)
+        client.subscribe(to_server_topic, 1)
     else:
         print("Failed to connect, return code %d\n", reason_code)
 
@@ -87,7 +78,7 @@ client = mqtt_client.Client(
 
 
 client.message_callback_add(
-    topic, on_message_ctrl
+    to_server_topic, on_message_ctrl
 )  # Defines how to handle control messages only
 
 client.on_connect = on_connect
@@ -120,9 +111,9 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     lifespan=lifespan,
-    title="Electric Scooter information and control",
+    title="Electric Scooter information and control API",
     description="ChangeME",
-    version="0.1.0",
+    version="1.0.0",
 )
 
 # Add pagination to the FastAPI app
@@ -193,10 +184,6 @@ async def global_data(
         query = query.order_by(GeneralInfoModel.time.desc())
 
     return paginate(db, query)
-
-
-# TODO: USE SCALAR FOR IMPROVED EFFICIENCY
-# https://hatchjs.com/sqlalchemy-scalars-vs-all/
 
 
 # Datatime accepts timestamp with hours minutes and second. If you don't specify hours and minutes it defaults to 00:00 of
@@ -290,17 +277,17 @@ async def command_to_scooter(command: Union[PowerCommand, dict]):
 
         print(f"Publishing: {payload}")
 
-        s = client.publish(topic, payload)
+        s = client.publish(to_scooter_topic, payload, 1)
 
-        # Wait for publish and response 5 secs
-        await asyncio.sleep(3)
+        # Wait for publish and response 3 secs
+        await asyncio.sleep(10)
 
         if not s.is_published():
             raise RuntimeError("Message not published. Try again")
 
         if mqtt_response is None:
             return PowerResponse(
-                MQTTResponse(
+                response=MQTTResponse(
                     result=False,
                     status="unknown",
                     reason="Didn't get response from scooter. Please check status using /api/v1/command/get_relay_status",
@@ -317,7 +304,7 @@ async def command_to_scooter(command: Union[PowerCommand, dict]):
 
     except Exception as e:
         return PowerResponse(
-            MQTTResponse(
+            response=MQTTResponse(
                 result=False,
                 status="unknown",
                 reason=f"Failed to get scooter response: '{e}'",
