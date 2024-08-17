@@ -274,11 +274,17 @@ async def location_data(
     return paginate(db, query)
 
 
+# Sending MQTT Commands to scooter
+
+
 async def command_to_scooter(command: Union[PowerCommand, dict]):
 
     try:
         global mqtt_response
         mqtt_response = None
+
+        if not client.is_connected():
+            raise ConnectionError("Can't reach the MQTT broker")
 
         if type(command) is PowerCommand:
             payload = command.model_dump_json()
@@ -286,29 +292,39 @@ async def command_to_scooter(command: Union[PowerCommand, dict]):
             payload = json.dumps(command)
 
         print(f"Publishing: {payload}")
+
         s = client.publish(topic, payload)
 
         # Wait for publish and response 5 secs
         await asyncio.sleep(3)
 
-        if s.is_published() == False:
-            print("Cant publish message")
-            raise ConnectionError
+        if not s.is_published():
+            raise RuntimeError("Message not published. Try again")
 
         if mqtt_response is None:
             return PowerResponse(
                 MQTTResponse(
                     result=False,
                     status="unknown",
-                    reason="Didn't get response from scooter. Please check status using get_relay_status",
+                    reason="Didn't get response from scooter. Please check status using /api/v1/command/get_relay_status",
                 )
             )
 
         return mqtt_response
 
-    except ConnectionError:
+    except (RuntimeError, ConnectionError) as rt:  # is_published would return an
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to establish contact with the scooter: '{rt}'",
+        )
+
+    except Exception as e:
         return PowerResponse(
-            MQTTResponse(result=False, reason="Can't send message to MQTT broker")
+            MQTTResponse(
+                result=False,
+                status="unknown",
+                reason=f"Failed to get scooter response: '{e}'",
+            )
         )
 
 
