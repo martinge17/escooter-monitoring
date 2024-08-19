@@ -31,20 +31,21 @@ services:
     container_name: mqtt_pg_bridge
     restart: unless-stopped
     volumes:
-      - ./mqtt-postgresql-bridge/config.toml:/app/config.toml:ro
+      - ./server/bridge/config.toml:/app/config.toml:ro
     networks:
       - scooter
 
   api:
     build:
-      context: ./api
+      context: ./server/api
       dockerfile: Dockerfile
     container_name: scooter_api
     restart: unless-stopped
     volumes:
-      - ./api/config.toml:/code/app/config.toml:ro
+      - ./server/api/config.toml:/app/config.toml:ro
     networks:
       - scooter
+
 
   #TODO CREATE CUSTOM IMAGE TO IMPORT CONFIG (DATASOURCE AND DASHBOARD)
   grafana:
