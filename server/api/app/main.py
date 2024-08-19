@@ -301,7 +301,7 @@ async def command_to_scooter(command: Union[PowerCommand, dict]):
         s = client.publish(to_scooter_topic, payload, 1)
 
         # Wait for publish and response 3 secs
-        await asyncio.sleep(10)
+        await asyncio.sleep(3)
 
         if not s.is_published():
             raise RuntimeError("Message not published. Try again")
