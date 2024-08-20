@@ -49,7 +49,7 @@ to_server_topic = config["mqtt"]["to_server_topic"]
 # Triggered by the output pin going high: active_high=True
 # Initially off: initial_value=False
 # Initilize the relay
-relay = gpiozero.OutputDevice(RELAY_PIN, active_high=True, initial_value=False)
+relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
 
 # Setup and connect to the MQTT broker
 
