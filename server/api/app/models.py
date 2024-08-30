@@ -34,8 +34,8 @@ class BatteryInfo(Base):
     voltage = Column(DECIMAL(4, 2), nullable=False)
     current = Column(DECIMAL(5, 3), nullable=False)
     power = Column(DECIMAL(5, 2), nullable=False)  # Generated column in DB
-    temp1 = Column(SmallInteger, nullable=False)
-    temp2 = Column(SmallInteger, nullable=False)
+    temp1 = Column(DECIMAL(4, 2), nullable=False)
+    temp2 = Column(DECIMAL(4, 2), nullable=False)
 
 
 class LocationInfo(Base):
