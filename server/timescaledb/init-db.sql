@@ -11,7 +11,7 @@ CREATE TABLE general_info (
     uptime_sec INTEGER NOT NULL CHECK (uptime_sec >= 0), --- Current uptime (seconds)
     total_distance_m INTEGER NOT NULL CHECK (total_distance_m >= 0), --- Lifetime distance (meters)
     est_distance_left_km DECIMAL(5,2) NOT NULL CHECK (est_distance_left_km >= 0),--- Estimated trip distance (kilometers)
-    frame_temp DECIMAL(4,2) NOT NULL CHECK (frame_temp >= 0) -- Frame temperature in celsius
+    frame_temp DECIMAL(4,2) NOT NULL -- Frame temperature in celsius
 );
 
 SELECT create_hypertable('general_info',by_range('time'));
@@ -35,8 +35,8 @@ CREATE TABLE battery_info (
     voltage DECIMAL(4,2) NOT NULL CHECK (voltage >= 0), --- Voltage for all cells unified (Volts)
     current DECIMAL(5,3) NOT NULL, --- in Amps current going through battery --BEFORE 5,4
     power DECIMAL(5,2) GENERATED ALWAYS AS (voltage * current) STORED, --- Calculated power delivered by battery (Watts)
-    temp1 SMALLINT NOT NULL CHECK (temp1 >=  0), --- TODO: PROVISIONAL
-    temp2 SMALLINT NOT NULL CHECK (temp2 >=  0) --- TODO: PROVISIONAL
+    temp1 DECIMAL(4,2) NOT NULL, --- TODO: PROVISIONAL
+    temp2 DECIMAL(4,2) NOT NULL --- TODO: PROVISIONAL
     --- TODO: METER JSON CON VOLTS DAS CELDAS??????????
 );
 

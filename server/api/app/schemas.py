@@ -47,8 +47,8 @@ class BatteryInfo(BaseModel):
     voltage: float
     current: float
     power: float  # Generated column in DB
-    temp1: int
-    temp2: int
+    temp1: float
+    temp2: float
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -83,8 +83,8 @@ class UnifiedGlobalData(BaseModel):
     voltage: float
     current: float
     power: float  # Generated column in DB
-    temp1: int
-    temp2: int
+    temp1: float
+    temp2: float
     geojson: dict  # Here return a GeoJSON for simplicity
     altitude: float
     gps_speed: float
