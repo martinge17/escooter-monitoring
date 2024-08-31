@@ -47,7 +47,6 @@ def on_connect(client, userdata, flags, reason_code, properties):
         logging.exception("Failed to connect, return code %d\n", reason_code)
 
 
-# Nunca chega aqui
 def on_message(client, userdata, msg):
 
     logging.info("Message received!")
@@ -103,6 +102,7 @@ def on_message(client, userdata, msg):
                 )
             except Exception as e:
                 logging.error(f"Error executing battery_info query: {e}")
+                conn.rollback()
                 raise
 
             # Insert to location_info
@@ -122,6 +122,7 @@ def on_message(client, userdata, msg):
                 )
             except Exception as e:
                 logging.error(f"Error executing location_info query: {e}")
+                conn.rollback()
                 raise
             # Commit changes
             logging.info("Commiting changes")
