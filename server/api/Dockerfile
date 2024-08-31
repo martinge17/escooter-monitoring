@@ -1,12 +1,12 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim
 
 RUN apt update && apt install -y postgresql-client && apt-get clean
 
 WORKDIR /app
 
-COPY ./requirements.txt requirements.txt
+COPY requirements.txt .
 
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./app/. .
 
