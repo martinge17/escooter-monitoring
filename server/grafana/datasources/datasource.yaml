@@ -1,0 +1,20 @@
+# datasource.yml
+# https://grafana.com/docs/grafana/latest/datasources/postgres/#provision-the-data-source
+apiVersion: 1
+
+datasources:
+  - name: PostgreSQL Scooter
+    type: postgres
+    uid: grafana-scooter-monitoring-timescaledb
+    url: ${POSTGRES_HOST}:${POSTGRES_PORT}
+    database: ${POSTGRES_DB}
+    user: ${POSTGRES_USER}
+    jsonData:
+      sslmode: 'disable'
+      postgresVersion: 1000
+      timescaledb: true
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    access: proxy
+    isDefault: true
+    allowUiUpdates: true
