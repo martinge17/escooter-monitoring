@@ -1,13 +1,12 @@
 services:
   mqtt_broker:
-    image: emqx:5.7.1
-    container_name: emqx1-broker #MQTT Broker
+    image: eclipse-mosquitto:2.0.18
+    container_name: mosquitto-broker #MQTT Broker
     restart: unless-stopped
-    volumes:
-      - emqx_data:/opt/emqx/data
     ports:
       - 1883:1883
-      - 18083:18083
+    volumes:
+      - ./broker/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     networks:
       - scooter
 
@@ -31,31 +30,36 @@ services:
     container_name: mqtt_pg_bridge
     restart: unless-stopped
     volumes:
-      - ./server/bridge/config.toml:/app/config.toml:ro
+      - ./mqtt-postgresql-bridge/config.toml:/app/config.toml:ro
     networks:
       - scooter
 
   api:
     build:
-      context: ./server/api
+      context: ./api
       dockerfile: Dockerfile
     container_name: scooter_api
     restart: unless-stopped
+    ports:
+      - 80:80
     volumes:
-      - ./server/api/config.toml:/app/config.toml:ro
+      - ./api/config.toml:/app/config.toml:ro
     networks:
       - scooter
 
-
-  #TODO CREATE CUSTOM IMAGE TO IMPORT CONFIG (DATASOURCE AND DASHBOARD)
   grafana:
     image: grafana/grafana:11.1.1
     container_name: grafana
     restart: unless-stopped
+    env_file: "./grafana/grafana.env"
     ports:
       - 3000:3000
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards/default.yaml:/etc/grafana/provisioning/dashboards/default.yaml
+      - ./grafana/dashboards/martinete_08.json:/var/lib/grafana/dashboards/martinete_08.json
     networks:
       - scooter
 
@@ -65,6 +69,5 @@ networks:
     driver: bridge
 
 volumes:
-  emqx_data:
   timescaledb_data:
   grafana_data:
