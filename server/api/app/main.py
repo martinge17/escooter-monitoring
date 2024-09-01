@@ -34,6 +34,8 @@ import json
 from functools import lru_cache  # Using lru_cache config file is only read once
 from config import Settings
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # Loading the configuration
 
 
@@ -114,6 +116,17 @@ app = FastAPI(
     title="Electric Scooter information and control API",
     description="ChangeME",
     version="1.0.0",
+)
+
+origins = ["*"]  # Allow requests comming from all domains
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Add pagination to the FastAPI app
