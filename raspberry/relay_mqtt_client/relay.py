@@ -45,11 +45,11 @@ to_server_topic = config["mqtt"]["to_server_topic"]
 # Normally Open => Open by default
 
 # For development use Normally Closed: As it allows the scooter to turn on even when the RPI is down
-
+# https://gpiozero.readthedocs.io/en/latest/api_output.html#outputdevice
 # Triggered by the output pin going high: active_high=True
-# Initially off: initial_value=False
+# Initially None: Keep the last state
 # Initilize the relay
-relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
+relay = gpiozero.OutputDevice(RELAY_PIN, active_high=True, initial_value=None)
 
 # Setup and connect to the MQTT broker
 
