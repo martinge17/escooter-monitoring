@@ -44,7 +44,7 @@ to_server_topic = config["mqtt"]["to_server_topic"]
 # Normally Closed => Closed by default
 # Normally Open => Open by default
 
-# For development use Normally Closed: As it allows the scooter to turn on even when the RPI is down
+# Using Normally Open => In case of system failure the scooter wont work
 # https://gpiozero.readthedocs.io/en/latest/api_output.html#outputdevice
 # Triggered by the output pin going high: active_high=True
 # Initially None: Keep the last state
