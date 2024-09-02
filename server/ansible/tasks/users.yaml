@@ -1,0 +1,14 @@
+- name: "Add user"
+  user:
+    name: "{{ username }}"
+    create_home: true
+    shell: "/usr/bin/bash"
+    groups: [ 'docker' ]
+    append: true
+
+- name: Set authorized_keys
+  ansible.posix.authorized_key:
+    user: "{{ username }}"
+    state: present
+    key: "{{ ssh_key }}"
+
