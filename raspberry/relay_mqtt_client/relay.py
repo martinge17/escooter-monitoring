@@ -46,10 +46,11 @@ to_server_topic = config["mqtt"]["to_server_topic"]
 
 # Using Normally Open => In case of system failure the scooter wont work
 # https://gpiozero.readthedocs.io/en/latest/api_output.html#outputdevice
-# Triggered by the output pin going high: active_high=True
+# The relay board comes configured by default to trigger the relay when the input voltage goes low == active_high=False !!!!
+# Relay on when voltage is low: active_high=False
 # Initially None: Keep the last state
 # Initilize the relay
-relay = gpiozero.OutputDevice(RELAY_PIN, active_high=True, initial_value=None)
+relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=None)
 
 # Setup and connect to the MQTT broker
 
@@ -92,16 +93,16 @@ def on_control_message(client, userdata, msg):
     try:
         if data["status"] == "query":
             response["response"]["result"] = True
-            response["response"]["status"] = "open" if relay.value else "close"
+            response["response"]["status"] = "close" if relay.value else "open"
 
         elif data["status"] == "open":
-            relay.on()
-            if relay.value == 1:
+            relay.off()
+            if relay.value == 0:
                 response["response"]["result"] = True
                 response["response"]["status"] = "open"
         else:
-            relay.off()
-            if relay.value == 0:
+            relay.on()
+            if relay.value == 1:
                 response["response"]["result"] = True
                 response["response"]["status"] = "close"
 
