@@ -7,8 +7,6 @@ services:
       - 1883:1883
     volumes:
       - ./broker/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-    networks:
-      - scooter
 
   timescaledb:
     image: timescale/timescaledb-ha:pg16  # Use HA variant since we need Postgis installed
@@ -19,9 +17,8 @@ services:
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
       - ./timescaledb/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ./timescaledb/before-init-db.sh:/docker-entrypoint-initdb.d/before-init-db.sh:ro
     env_file: "./timescaledb/db.env"
-    networks:
-      - scooter
 
   bridge:
     build:
@@ -31,8 +28,9 @@ services:
     restart: unless-stopped
     volumes:
       - ./mqtt-postgresql-bridge/config.toml:/app/config.toml:ro
-    networks:
-      - scooter
+    depends_on:
+      - mqtt_broker
+      - timescaledb
 
   api:
     build:
@@ -44,8 +42,9 @@ services:
       - 80:80
     volumes:
       - ./api/config.toml:/app/config.toml:ro
-    networks:
-      - scooter
+    depends_on:
+      - mqtt_broker
+      - timescaledb
 
   grafana:
     image: grafana/grafana:11.1.1
@@ -60,13 +59,6 @@ services:
       - ./grafana/datasources:/etc/grafana/provisioning/datasources
       - ./grafana/dashboards/default.yaml:/etc/grafana/provisioning/dashboards/default.yaml
       - ./grafana/dashboards/martinete_08.json:/var/lib/grafana/dashboards/martinete_08.json
-    networks:
-      - scooter
-
-networks:
-  scooter:
-    external: true
-    driver: bridge
 
 volumes:
   timescaledb_data:

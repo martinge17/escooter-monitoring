@@ -35,9 +35,8 @@ CREATE TABLE battery_info (
     voltage DECIMAL(4,2) NOT NULL CHECK (voltage >= 0), --- Voltage for all cells unified (Volts)
     current DECIMAL(5,3) NOT NULL, --- in Amps current going through battery --BEFORE 5,4
     power DECIMAL(5,2) GENERATED ALWAYS AS (voltage * current) STORED, --- Calculated power delivered by battery (Watts)
-    temp1 DECIMAL(4,2) NOT NULL, --- TODO: PROVISIONAL
-    temp2 DECIMAL(4,2) NOT NULL --- TODO: PROVISIONAL
-    --- TODO: METER JSON CON VOLTS DAS CELDAS??????????
+    temp1 DECIMAL(4,2) NOT NULL,
+    temp2 DECIMAL(4,2) NOT NULL
 );
 
 SELECT create_hypertable('battery_info',by_range('time'));
@@ -68,18 +67,21 @@ COMMENT ON COLUMN location_info.location IS 'Longitude Latitude in DD';
 COMMENT ON COLUMN location_info.altitude IS 'Altitude in meters';
 COMMENT ON COLUMN location_info.gps_speed IS 'GPS speed in km/h';
 
+--- Create write-only user for MQTT Bridge ---
+GRANT CONNECT ON DATABASE scooter_data TO bridge;
+GRANT USAGE ON SCHEMA public TO bridge;
+GRANT INSERT ON general_info TO bridge;
+GRANT INSERT ON battery_info TO bridge;
+GRANT INSERT ON location_info TO bridge;
 
 --- Create read-only user for Grafana ---
-CREATE USER grafana WITH PASSWORD 'changeme'; --TODO!!!!! NOTE THIS ON README
 GRANT CONNECT ON DATABASE scooter_data TO grafana;
 GRANT USAGE ON SCHEMA public TO grafana;
 GRANT SELECT ON general_info TO grafana;
 GRANT SELECT ON battery_info TO grafana;
 GRANT SELECT ON location_info TO grafana;
 
-
 --- Create read-only user for API ---
-CREATE USER api WITH PASSWORD 'changeme'; --TODO!!!!! NOTE THIS ON README
 GRANT CONNECT ON DATABASE scooter_data TO api;
 GRANT USAGE ON SCHEMA public TO api;
 GRANT SELECT ON general_info TO api;
