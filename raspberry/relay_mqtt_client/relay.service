@@ -1,6 +1,7 @@
 # https://github.com/torfsen/python-systemd-tutorial
 # https://wiki.archlinux.org/title/Systemd/User
 
+# You can place the files on the user directory. By default the install script will place the service in a system wide folder.
 # Put this unit in ~./config/systemd/user/
 
 # Avoid having to login to start the service
@@ -10,12 +11,17 @@
 [Unit]
 Description=MQTT to Relay service for Scooter Monitoring
 After=default.target
+#no time based limitations for restart attempts
+StartLimitIntervalSec=0
+#unlimited start attempts
+StartLimitBurst=0
 
 [Service]
-ExecStart=/usr/bin/python3 /home/scooter/relay.py
-Restart=on-failure
-# Our service will notify systemd once it is up and running
-Type=notify
+ExecStart=/usr/bin/python3 /home/admin/escooter-monitoring/raspberry/relay_mqtt_client/relay.py
+User=admin
+WorkingDirectory=/home/admin/escooter-monitoring/raspberry/relay_mqtt_client/
+Restart=always
+Type=simple
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=relay-service
