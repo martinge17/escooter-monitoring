@@ -1,0 +1,73 @@
+- name: "Update apt"
+  apt:
+    update_cache: yes
+
+- name: Add docker repository (used to install docker compose plugin)
+  block:
+    - name: Get Docker repo key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+
+    - name: Get Docker repo
+      ansible.builtin.apt_repository:
+        repo: "{{ docker_repo }}"
+        state: present
+
+
+- name: "Install packages"
+  package:
+    name:
+      - git
+      - docker.io
+      - docker-compose
+      - docker-compose-plugin
+      - python3
+      - python3-docker
+    state: latest
+
+- name: "Enable Public Key SSH"
+  lineinfile:
+    path: "/etc/ssh/sshd_config"
+    regexp: '^(.*)PubkeyAuthentication(.*)$'
+    line: 'PubkeyAuthentication yes'
+
+- name: Add user tasks
+  ansible.builtin.import_tasks: tasks/users.yaml
+
+- name: "Copy files to server"
+  synchronize:
+    src: "../../"
+    dest: "/home/{{ username }}/scooter/"
+
+# Here will be the docker steps
+
+- block:
+  - name: Run Docker Compose
+    community.docker.docker_compose_v2:
+      project_src: "/home/{{ username }}/scooter/"
+      files:
+        - server-compose.yaml
+    register: output
+
+  - name: Verify that services are running
+    ansible.builtin.assert:
+      that:
+        - mqtt_broker.State == 'running'
+        - timescaledb.State == 'running'
+        - bridge.State == 'running'
+        - api.State == 'running'
+        - grafana.State == 'running'
+    vars:
+      mqtt_broker: >-
+        {{ output.containers | selectattr("Service", "equalto", "mqtt_broker") | first }}
+      timescaledb: >-
+        {{ output.containers | selectattr("Service", "equalto", "timescaledb") | first }}
+      bridge: >-
+        {{ output.containers | selectattr("Service", "equalto", "bridge") | first }}
+      api: >-
+        {{ output.containers | selectattr("Service", "equalto", "api") | first }}
+      grafana: >-
+        {{ output.containers | selectattr("Service", "equalto", "grafana") | first }}
+  become: true
+  become_user: "{{ username }}"

@@ -1,0 +1,8 @@
+- hosts: all
+  become: true
+
+  vars_files:
+    - vars/vars.yaml
+
+  pre_tasks:
+    - ansible.builtin.import_tasks: tasks/server.yaml
