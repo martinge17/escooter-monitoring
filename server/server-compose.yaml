@@ -17,7 +17,7 @@ services:
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
       - ./timescaledb/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-      - ./timescaledb/before-init-db.sh:/docker-entrypoint-initdb.d/before-init-db.sh:ro
+      - ./timescaledb/run-after-init-db.sh:/docker-entrypoint-initdb.d/run-after-init-db.sh:ro
     env_file: "./timescaledb/db.env"
 
   bridge:
@@ -50,6 +50,8 @@ services:
     image: grafana/grafana:11.1.1
     container_name: grafana
     restart: unless-stopped
+    environment:
+      - GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource
     env_file: "./grafana/grafana.env"
     ports:
       - 3000:3000

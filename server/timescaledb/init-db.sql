@@ -67,23 +67,3 @@ COMMENT ON COLUMN location_info.location IS 'Longitude Latitude in DD';
 COMMENT ON COLUMN location_info.altitude IS 'Altitude in meters';
 COMMENT ON COLUMN location_info.gps_speed IS 'GPS speed in km/h';
 
---- Create write-only user for MQTT Bridge ---
-GRANT CONNECT ON DATABASE scooter_data TO bridge;
-GRANT USAGE ON SCHEMA public TO bridge;
-GRANT INSERT ON general_info TO bridge;
-GRANT INSERT ON battery_info TO bridge;
-GRANT INSERT ON location_info TO bridge;
-
---- Create read-only user for Grafana ---
-GRANT CONNECT ON DATABASE scooter_data TO grafana;
-GRANT USAGE ON SCHEMA public TO grafana;
-GRANT SELECT ON general_info TO grafana;
-GRANT SELECT ON battery_info TO grafana;
-GRANT SELECT ON location_info TO grafana;
-
---- Create read-only user for API ---
-GRANT CONNECT ON DATABASE scooter_data TO api;
-GRANT USAGE ON SCHEMA public TO api;
-GRANT SELECT ON general_info TO api;
-GRANT SELECT ON battery_info TO api;
-GRANT SELECT ON location_info TO api;
