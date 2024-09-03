@@ -18,3 +18,8 @@ datasources:
     access: proxy
     isDefault: true
     allowUiUpdates: true
+  - name: yesoreyeram-infinity-datasource
+    type: yesoreyeram-infinity-datasource
+    uid: scooter-api
+    basicAuth: false
+
