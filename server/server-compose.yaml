@@ -15,7 +15,7 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - timescaledb_data:/var/lib/postgresql/data
+      - timescaledb_data:/home/postgres/pgdata/data # While using HA variant data is stored in this directory
       - ./timescaledb/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
       - ./timescaledb/run-after-init-db.sh:/docker-entrypoint-initdb.d/run-after-init-db.sh:ro
     env_file: "./timescaledb/db.env"
