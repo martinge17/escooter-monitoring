@@ -98,13 +98,13 @@ def on_control_message(client, userdata, msg):
         elif data["status"] == "open":
             # relay.off()
             relay.on()
-            if relay.value == 0:
+            if relay.value == 1:
                 response["response"]["result"] = True
                 response["response"]["status"] = "open"
         else:
             # relay.on()
             relay.off()
-            if relay.value == 1:
+            if relay.value == 0:
                 response["response"]["result"] = True
                 response["response"]["status"] = "close"
 
