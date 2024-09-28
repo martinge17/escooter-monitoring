@@ -1,12 +1,12 @@
 [mqtt]
-broker =
-port =
-client =
-topic =
+broker = "mqtt_broker"
+port = 1883
+client = "bridge"
+topic = "vehicle/1/realtime"
 
 [database]
-db_hostname=
-db_port=
-db_name=
-user=
-password=
+db_hostname= "timescaledb"
+db_port= 5432
+db_name= "scooter_data"
+user= "bridge"
+password= "changeme"
