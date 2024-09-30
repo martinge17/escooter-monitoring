@@ -1,0 +1,21 @@
+[mqtt]
+broker = "tcp://ubuntu-4gb-fsn1-1:1883"
+client = "martinete"
+topic = "vehicle/1/realtime"
+keep_alive = 20
+# The minimum retry interval. Doubled on each failed retry. This has a resolution in seconds.
+reconnect_min = 1
+# The maximum retry interval. Doubling stops here on failed retries. This has a resolution in seconds.
+reconnect_max = 30
+# Frecuency for sending data to broker (seconds). More frecuency == More data consumption
+send_interval = 5
+
+[scooter]
+# Write the MAC address here without the ":"
+mac = "XXXXXXXXXXX"
+token_file_path = ".mi-token"
+
+[serial]
+# Serial port for the GPS connection.
+serial_port = "/dev/ttyUSB2"
+baudrate = 115200
