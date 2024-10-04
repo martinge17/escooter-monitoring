@@ -122,4 +122,4 @@ I am deeply grateful to both developers for their work, which was essential to t
 
 ## 📄 License
 
-The AGPL-3 license 2024 - [Martín G](https://github.com/martinge17)
+This project is licensed under the terms of the AGPL-3 license.
