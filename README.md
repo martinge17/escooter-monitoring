@@ -8,7 +8,7 @@
     <strong>🛴 Realtime Xiaomi Scooter Monitoring and Control using a Raspberry Pi, GPS and 4G</strong>
     <br>
     <br>
-    <img src="https://img.shields.io/github/license/martinge17/escooter-monitoring"> <img src="https://img.shields.io/github/v/release/mg.shields.io/github/license/">
+    <img src="https://img.shields.io/github/license/martinge17/escooter-monitoring"> <img src="https://img.shields.io/github/v/release/martinge17/escooter-monitoring">
     <hr>
 </p>
 
