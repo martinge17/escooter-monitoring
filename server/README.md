@@ -55,5 +55,5 @@ Modify the variables and inventory to your needs.
 If you already have a server with Docker installed, you can just copy the server folder, modify the env and configuration files as necessary and start the Compose with:
 
 ```bash
-docker compose -f server-compose.yaml
+docker compose -f server-compose.yaml up
 ```

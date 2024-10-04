@@ -1,0 +1,10 @@
+[mqtt]
+broker = "ubuntu-4gb-fsn1-1"
+port = 1883
+client = "scooter"
+to_scooter_topic = "vehicle/1/control/to_scooter"
+to_server_topic = "vehicle/1/control/to_server"
+
+[gpio]
+# Change the pin to the GPIO pin used by the relay.
+pin = 23

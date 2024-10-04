@@ -1,0 +1,23 @@
+[Unit]
+Description=E-Scooter monitoring client
+After=default.target
+#no time based limitations for restart attempts
+StartLimitIntervalSec=0
+#unlimited start attempts
+StartLimitBurst=0
+
+# Modify the user and path if not running as "scooter" user
+
+[Service]
+ExecStart=/home/scooter/escooter-monitoring/raspberry/m365
+User=scooter
+WorkingDirectory=/home/scooter/escooter-monitoring/raspberry/
+Restart=always
+Type=simple
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scooter-service
+
+[Install]
+# Start the service at boot
+WantedBy=default.target

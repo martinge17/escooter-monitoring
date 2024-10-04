@@ -1,0 +1,28 @@
+# https://github.com/torfsen/python-systemd-tutorial
+
+# You can place the files on the user directory. By default the install script will create a system wide service.
+# If you want to add the service only for this user -> https://wiki.archlinux.org/title/Systemd/User
+
+[Unit]
+Description=MQTT to Relay service for Scooter Monitoring
+After=default.target
+#no time based limitations for restart attempts
+StartLimitIntervalSec=0
+#unlimited start attempts
+StartLimitBurst=0
+
+# Modify the user and path if not running as "scooter" user
+
+[Service]
+ExecStart=/usr/bin/python3 /home/scooter/escooter-monitoring/raspberry/relay_mqtt_client/relay.py
+User=scooter
+WorkingDirectory=/home/scooter/escooter-monitoring/raspberry/relay_mqtt_client/
+Restart=always
+Type=simple
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=relay-service
+
+[Install]
+# Start the service at boot
+WantedBy=default.target

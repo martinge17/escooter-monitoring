@@ -12,7 +12,7 @@ The data is stored across three tables as shown below:
 
 <p align="center">
     <picture>
-        <img src="./../../docs/dbschema.png" width="500">
+        <img src="./../../static/img/dbschema.png" width="500">
     </picture>
 </p>
 
