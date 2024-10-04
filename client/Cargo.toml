@@ -1,11 +1,13 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "m365"
-version = "0.1.1"
-edition = "2021"
+version = "1.0.0"
+edition = "2024"
 license-file = "LICENSE.md"
-description = "A lightweight rust library to receive BLE Xiaomi M365 scooter messages"
-keywords = ["m365", "xiaomi", "electric-scooter", "bluetooth", "ble"]
-repository = "https://github.com/macbury/m365"
+description = "A lightweight rust client to monitor Xiaomi scooters using BLE, 4G and GPS"
+keywords = ["m365", "xiaomi", "electric-scooter", "bluetooth", "ble","iot","gps","raspberry-pi"]
+repository = "https://github.com/martinge17/escooter-monitoring"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -44,3 +46,6 @@ tracing = "0.1.40"
 regex = "1.10.5"
 lazy_static = "1.5.0"
 tracing-subscriber = { version = "0.3.18", features = ["tracing-log"] }
+
+[[example]]
+name = "scanner"
